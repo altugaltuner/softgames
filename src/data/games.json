@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Ace of Shadows",
+    "description": "Complete classic solitaire tripeaks puzzles.",
+    "url": "/ace-of-shadows",
+    "theme": "garden",
+    "glyph": "AO"
+  },
+  {
+    "title": "Magic Words",
+    "description": "Match all kinds of delicious cookies and solve beautiful puzzles.",
+    "url": "/magic-words",
+    "theme": "sweet",
+    "glyph": "MW"
+  },
+  {
+    "title": "Phoenix Flame",
+    "description": "Travel the world and complete puzzles in this fun, free card game.",
+    "url": "/phoenix-flame",
+    "theme": "tripeaks",
+    "glyph": "PF"
+  }
+]
