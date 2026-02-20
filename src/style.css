@@ -33,6 +33,7 @@ body {
   padding: 40px 24px 56px;
 }
 
+html.is-game,
 body.is-game {
   background: #0b0d12;
   overflow: hidden;

@@ -17,9 +17,10 @@ export async function createApp(
     resizeTo: window,
   });
 
+  app.canvas.style.position = "fixed";
+  app.canvas.style.top = "0";
+  app.canvas.style.left = "0";
   app.canvas.style.display = "block";
-  app.canvas.style.width = "100%";
-  app.canvas.style.height = "100%";
 
   if (options.mount !== false) {
     root.replaceChildren(app.canvas);

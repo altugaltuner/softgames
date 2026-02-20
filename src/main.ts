@@ -43,12 +43,12 @@ async function renderRoute(): Promise<void> {
       mount: false,
     });
     appRoot.replaceChildren(app.canvas);
+    document.documentElement.classList.add("is-game");
     document.body.classList.add("is-game");
     const scene = await createAceOfShadowsScene(app);
 
     const detachFps = attachFpsHud(app);
     const detachResize = createResizeManager(
-      app,
       AceOfShadowsDesign.width,
       AceOfShadowsDesign.height,
       scene.resize,
@@ -59,12 +59,14 @@ async function renderRoute(): Promise<void> {
       detachFps();
       scene.destroy();
       app.destroy(true);
+      document.documentElement.classList.remove("is-game");
       document.body.classList.remove("is-game");
     };
 
     return;
   }
 
+  document.documentElement.classList.remove("is-game");
   document.body.classList.remove("is-game");
   renderMenuScene(appRoot, { onNavigate: navigate });
 }

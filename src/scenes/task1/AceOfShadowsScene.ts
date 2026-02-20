@@ -1,8 +1,7 @@
 import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 import cardsData from "../../data/cards.json";
-
-const DESIGN_WIDTH = 1280;
-const DESIGN_HEIGHT = 720;
+import { AceOfShadowsConfig } from "./config";
+import { createStackMover } from "./tween/Tween";
 
 export type AceOfShadowsScene = {
   container: Container;
@@ -15,6 +14,48 @@ const cards = cardsData as string[];
 export async function createAceOfShadowsScene(
   app: Application,
 ): Promise<AceOfShadowsScene> {
+  const { container, backgroundContainer, cardContainer } =
+    createSceneContainers();
+
+  const background = createBackground(backgroundContainer);
+  const sprites = await createCardSprites(cards);
+  addCardsToContainer(cardContainer, sprites);
+  addToStage(app, container);
+
+  const stackMover = createStackMover(cardContainer, {
+    durationMs: AceOfShadowsConfig.tweenDurationMs,
+    startXRatio: AceOfShadowsConfig.startXRatio,
+    endXRatio: AceOfShadowsConfig.endXRatio,
+    centerYRatio: AceOfShadowsConfig.centerYRatio,
+    scale: AceOfShadowsConfig.cardScale,
+  });
+
+  return {
+    container,
+
+    resize: ({ width, height, scale: _scale }) => {
+      updateBackground(background, width, height);
+      // I put the card third center of the screen
+      stackMover.update(width, height);
+    },
+
+    destroy: () => {
+      stackMover.cancel();
+      container.destroy({ children: true });
+    },
+  };
+}
+
+export const AceOfShadowsDesign = {
+  width: AceOfShadowsConfig.designWidth,
+  height: AceOfShadowsConfig.designHeight,
+};
+
+function createSceneContainers(): {
+  container: Container;
+  backgroundContainer: Container;
+  cardContainer: Container;
+} {
   const container = new Container();
   container.sortableChildren = true;
 
@@ -25,40 +66,41 @@ export async function createAceOfShadowsScene(
   backgroundContainer.label = "backgroundContainer";
   cardContainer.label = "cardContainer";
 
-  const background = new Graphics();
-  backgroundContainer.addChild(background);
+  return { container, backgroundContainer, cardContainer };
+}
 
-  const textures = await Promise.all(cards.map((path) => Assets.load(path)));
-  const sprites = textures.map((texture) => {
+function createBackground(parent: Container): Graphics {
+  const background = new Graphics();
+  parent.addChild(background);
+  return background;
+}
+
+async function createCardSprites(paths: string[]): Promise<Sprite[]> {
+  const textures = await Promise.all(paths.map((path) => Assets.load(path)));
+  return textures.map((texture) => {
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5);
     return sprite;
   });
-
-  for (const sprite of sprites) {
-    sprite.position.set(0, 0);
-    cardContainer.addChild(sprite);
-  }
-
-  app.stage.addChild(container);
-
-  return {
-    container,
-    resize: ({ width, height, scale: _scale }) => {
-      background.clear();
-      background.beginFill(0x0b0d12);
-      background.drawRect(0, 0, width, height);
-      background.endFill();
-
-      cardContainer.position.set(width / 2, height / 2);
-    },
-    destroy: () => {
-      container.destroy({ children: true });
-    },
-  };
 }
 
-export const AceOfShadowsDesign = {
-  width: DESIGN_WIDTH,
-  height: DESIGN_HEIGHT,
-};
+function addCardsToContainer(container: Container, sprites: Sprite[]): void {
+  for (const sprite of sprites) {
+    sprite.position.set(0, 0);
+    container.addChild(sprite);
+  }
+}
+
+function addToStage(app: Application, container: Container): void {
+  app.stage.addChild(container);
+}
+
+function updateBackground(
+  background: Graphics,
+  width: number,
+  height: number,
+): void {
+  const size = Math.max(width, height) * 3;
+  background.clear();
+  background.fill({ color: 0x0b0d12 }).rect(-size, -size, size * 3, size * 3);
+}

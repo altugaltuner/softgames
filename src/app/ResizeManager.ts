@@ -1,5 +1,3 @@
-import { Application } from "pixi.js";
-
 export type ResizePayload = {
   width: number;
   height: number;
@@ -7,22 +5,34 @@ export type ResizePayload = {
 };
 
 export function createResizeManager(
-  app: Application,
   designWidth: number,
   designHeight: number,
   onResize: (payload: ResizePayload) => void,
 ): () => void {
-  const handleResize = () => {
-    const width = app.screen.width;
-    const height = app.screen.height;
+  const fire = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     const scale = Math.min(width / designWidth, height / designHeight);
     onResize({ width, height, scale });
   };
 
-  window.addEventListener("resize", handleResize);
-  handleResize();
+  const vv = window.visualViewport;
+
+  if (vv) {
+    vv.addEventListener("resize", fire);
+    vv.addEventListener("scroll", fire);
+  }
+  window.addEventListener("resize", fire);
+  window.addEventListener("orientationchange", fire);
+
+  fire();
 
   return () => {
-    window.removeEventListener("resize", handleResize);
+    if (vv) {
+      vv.removeEventListener("resize", fire);
+      vv.removeEventListener("scroll", fire);
+    }
+    window.removeEventListener("resize", fire);
+    window.removeEventListener("orientationchange", fire);
   };
 }
