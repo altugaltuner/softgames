@@ -7,6 +7,7 @@ import {
   AceOfShadowsDesign,
   createAceOfShadowsScene,
 } from "../scenes/ace-of-shadows/Scene";
+import { createPhoenixFlameScene } from "../scenes/phoenix-flame";
 import { addBackButton } from "../shared/AddBackButton";
 import { attachFpsHud } from "../shared/FpsHud";
 import type { ManagedScene } from "../types/App";
@@ -106,6 +107,9 @@ class SceneManager {
   ): Promise<ManagedScene> {
     if (path === "/ace-of-shadows") {
       return createAceOfShadowsScene(app);
+    }
+    if (path === "/phoenix-flame") {
+      return createPhoenixFlameScene(app);
     }
     return this.createBackgroundOnlyScene(app);
   }
