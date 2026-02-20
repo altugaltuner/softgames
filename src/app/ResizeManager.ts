@@ -9,6 +9,7 @@ export function createResizeManager(
   designHeight: number,
   onResize: (payload: ResizePayload) => void,
 ): () => void {
+
   const fire = () => {
     const width = window.innerWidth;
     const height = window.innerHeight;

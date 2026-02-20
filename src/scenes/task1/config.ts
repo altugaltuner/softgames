@@ -1,10 +1,22 @@
 export const AceOfShadowsConfig = {
   designWidth: 1280,
   designHeight: 720,
+  totalCards: 144,
+  stackOffsetY: -1.5,
   cardScale: 0.5,
+  responsiveScaleBreakpointWidth: 1200,
+  responsiveScaleBreakpointHeight: 720,
   tweenDurationMs: 2000,
+  launchIntervalMs: 1000,
   startXRatio: 8 / 10,
   endXRatio: 2 / 10,
   centerYRatio: 1 / 2,
+  easing: {
+    midpoint: 0.5,
+    initialMultiplier: 4,
+    endScale: 2,
+    power: 3,
+    endDivisor: 2,
+  },
 } as const;
 

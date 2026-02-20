@@ -1,4 +1,5 @@
-import { Container, Ticker } from "pixi.js";
+import { Container, Sprite, Ticker } from "pixi.js";
+import { easeInOutCubic, type EaseInOutCubicConfig } from "./Easing";
 
 export type TweenConfig = {
   durationMs: number;
@@ -6,6 +7,14 @@ export type TweenConfig = {
   endXRatio: number;
   centerYRatio: number;
   scale: number;
+};
+
+export type SequentialFlightConfig = TweenConfig & {
+  launchIntervalMs: number;
+  responsiveScaleBreakpointWidth: number;
+  responsiveScaleBreakpointHeight: number;
+  landedStackOffsetY: number;
+  easing: EaseInOutCubicConfig;
 };
 
 export type TweenHandle = {
@@ -51,8 +60,8 @@ export function tweenPosition(
 export function createStackMover(
   container: Container,
   config: TweenConfig,
-): { update: (width: number, height: number) => void; cancel: () => void } {
-  let progress = 0; // 0 = başlangıç, 1 = bitiş
+): { updateFirstFlight: (width: number, height: number) => void; cancel: () => void } {
+  let progress = 0;
   let tweenDone = false;
   let tweenCancel: (() => void) | null = null;
   let lastWidth = 0;
@@ -72,7 +81,7 @@ export function createStackMover(
     );
   };
 
-  const update = (width: number, height: number) => {
+  const updateFirstFlight = (width: number, height: number) => {
     lastWidth = width;
     lastHeight = height;
     container.scale.set(config.scale);
@@ -82,13 +91,11 @@ export function createStackMover(
       return;
     }
 
-    // Tween zaten çalışıyorsa, sadece pozisyonu güncelle (progress'i koru)
     if (tweenCancel) {
       applyPosition(width, height, progress);
       return;
     }
 
-    // İlk kez: tween başlat
     tweenCancel = tweenPosition(
       container,
       { x: getStartX(width), y: getCenterY(height) },
@@ -96,7 +103,6 @@ export function createStackMover(
       config.durationMs,
       (t) => {
         progress = t;
-        // Tween sırasında boyut değiştiyse, pozisyonu yeni boyuta göre hesapla
         applyPosition(lastWidth, lastHeight, t);
       },
       () => {
@@ -108,10 +114,116 @@ export function createStackMover(
   };
 
   return {
-    update,
+    updateFirstFlight,
     cancel: () => {
       tweenCancel?.();
       tweenCancel = null;
+    },
+  };
+}
+
+export function createSequentialCardLauncher(
+  cardContainer: Container,
+  sprites: Sprite[],
+  config: SequentialFlightConfig,
+): { updatePosAndScale: (width: number, height: number) => void; cancel: () => void } {
+  let started = false;
+  let intervalId: number | null = null;
+  let currentTravelX = 0;
+  let currentCenterY = 0;
+  const ticker = Ticker.shared;
+  let tickerActive = false;
+
+  const pending = [...sprites].reverse();
+  const landedSlots = new Map<Sprite, number>();
+  let launchedCount = 0;
+  const activeFlights = new Map<
+    Sprite,
+    {
+      fromX: number;
+      fromY: number;
+      targetY: number;
+      startedAt: number;
+      durationMs: number;
+    }
+  >();
+
+  const updateFlights = () => {
+    const now = performance.now();
+    for (const [sprite, flight] of activeFlights.entries()) {
+      const tRaw = Math.min(1, (now - flight.startedAt) / flight.durationMs);
+      const t = easeInOutCubic(tRaw, config.easing);
+      sprite.position.x = flight.fromX + (currentTravelX - flight.fromX) * t;
+      sprite.position.y = flight.fromY + (flight.targetY - flight.fromY) * t;
+
+      if (tRaw >= 1) {
+        sprite.position.set(currentTravelX, flight.targetY);
+        landedSlots.set(sprite, flight.targetY);
+        activeFlights.delete(sprite);
+      }
+    }
+  };
+
+  const launchNext = () => {
+    const sprite = pending.shift();
+    if (!sprite) {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+      return;
+    }
+
+    cardContainer.setChildIndex(sprite, cardContainer.children.length - 1);
+    const targetY = config.landedStackOffsetY * launchedCount;
+    launchedCount += 1;
+    activeFlights.set(sprite, {
+      fromX: sprite.position.x,
+      fromY: sprite.position.y,
+      targetY,
+      startedAt: performance.now(),
+      durationMs: config.durationMs,
+    });
+
+    if (!tickerActive) {
+      ticker.add(updateFlights);
+      tickerActive = true;
+    }
+  };
+
+  const updatePosAndScale = (width: number, height: number) => {
+    const widthRatio = width / config.responsiveScaleBreakpointWidth;
+    const heightRatio = height / config.responsiveScaleBreakpointHeight;
+    const responsiveScale = config.scale * Math.min(1, widthRatio, heightRatio);
+    cardContainer.scale.set(responsiveScale);
+    const startX = width * config.startXRatio;
+    const endX = width * config.endXRatio;
+    currentCenterY = height * config.centerYRatio;
+    currentTravelX = (endX - startX) / responsiveScale;
+    cardContainer.position.set(startX, currentCenterY);
+
+    for (const [sprite, targetY] of landedSlots) {
+      sprite.position.set(currentTravelX, targetY);
+    }
+
+    if (!started) {
+      started = true;
+      launchNext();
+      intervalId = window.setInterval(launchNext, config.launchIntervalMs);
+    }
+  };
+
+  return {
+    updatePosAndScale,
+    cancel: () => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+      if (tickerActive) {
+        ticker.remove(updateFlights);
+        tickerActive = false;
+      }
+      activeFlights.clear();
     },
   };
 }

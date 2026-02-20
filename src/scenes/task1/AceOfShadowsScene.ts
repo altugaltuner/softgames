@@ -1,7 +1,7 @@
 import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 import cardsData from "../../data/cards.json";
 import { AceOfShadowsConfig } from "./config";
-import { createStackMover } from "./tween/Tween";
+import { createSequentialCardLauncher } from "./tween/Tween";
 
 export type AceOfShadowsScene = {
   container: Container;
@@ -22,8 +22,19 @@ export async function createAceOfShadowsScene(
   addCardsToContainer(cardContainer, sprites);
   addToStage(app, container);
 
-  const stackMover = createStackMover(cardContainer, {
+  const cardLauncher = createSequentialCardLauncher(cardContainer, sprites, {
+
     durationMs: AceOfShadowsConfig.tweenDurationMs,
+    launchIntervalMs: AceOfShadowsConfig.launchIntervalMs,
+
+    responsiveScaleBreakpointWidth:
+      AceOfShadowsConfig.responsiveScaleBreakpointWidth,
+
+    responsiveScaleBreakpointHeight:
+      AceOfShadowsConfig.responsiveScaleBreakpointHeight,
+
+    landedStackOffsetY: AceOfShadowsConfig.stackOffsetY,
+    easing: AceOfShadowsConfig.easing,
     startXRatio: AceOfShadowsConfig.startXRatio,
     endXRatio: AceOfShadowsConfig.endXRatio,
     centerYRatio: AceOfShadowsConfig.centerYRatio,
@@ -35,12 +46,11 @@ export async function createAceOfShadowsScene(
 
     resize: ({ width, height, scale: _scale }) => {
       updateBackground(background, width, height);
-      // I put the card third center of the screen
-      stackMover.update(width, height);
+      cardLauncher.updatePosAndScale(width, height);
     },
 
     destroy: () => {
-      stackMover.cancel();
+      cardLauncher.cancel();
       container.destroy({ children: true });
     },
   };
@@ -77,16 +87,18 @@ function createBackground(parent: Container): Graphics {
 
 async function createCardSprites(paths: string[]): Promise<Sprite[]> {
   const textures = await Promise.all(paths.map((path) => Assets.load(path)));
-  return textures.map((texture) => {
+  return Array.from({ length: AceOfShadowsConfig.totalCards }, (_, index) => {
+    const texture = textures[index % textures.length];
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5);
+    sprite.label = `card-${index}`;
     return sprite;
   });
 }
 
 function addCardsToContainer(container: Container, sprites: Sprite[]): void {
-  for (const sprite of sprites) {
-    sprite.position.set(0, 0);
+  for (const [index, sprite] of sprites.entries()) {
+    sprite.position.set(0, AceOfShadowsConfig.stackOffsetY * index);
     container.addChild(sprite);
   }
 }
