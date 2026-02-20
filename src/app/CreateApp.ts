@@ -1,9 +1,5 @@
 import { Application } from "pixi.js";
-
-type CreateAppOptions = {
-  backgroundColor?: number;
-  mount?: boolean;
-};
+import type { CreateAppOptions } from "../types/App";
 
 export async function createApp(
   root: HTMLElement,

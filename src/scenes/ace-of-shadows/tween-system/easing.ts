@@ -1,10 +1,4 @@
-export type EaseInOutCubicConfig = {
-  midpoint: number;
-  initialMultiplier: number;
-  endScale: number;
-  power: number;
-  endDivisor: number;
-};
+import type { EaseInOutCubicConfig } from "../../../types/Easing";
 
 export function easeInOutCubic(
   t: number,

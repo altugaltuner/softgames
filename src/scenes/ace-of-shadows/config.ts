@@ -19,4 +19,3 @@ export const AceOfShadowsConfig = {
     endDivisor: 2,
   },
 } as const;
-
