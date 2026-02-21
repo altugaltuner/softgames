@@ -4,7 +4,7 @@ import type {
   SequentialFlightConfig,
   TweenConfig,
   TweenHandle,
-} from "../../../types/Tween";
+} from "./types";
 
 class Tween {
   private readonly container: Container;

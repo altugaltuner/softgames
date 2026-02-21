@@ -6,12 +6,12 @@ import { renderMenuScene } from "../scenes/menuScene";
 import {
   AceOfShadowsDesign,
   createAceOfShadowsScene,
-} from "../scenes/ace-of-shadows/Scene";
+} from "../scenes/ace-of-shadows";
+import { createMagicWordsScene } from "../scenes/magic-words";
 import { createPhoenixFlameScene } from "../scenes/phoenix-flame";
 import { addBackButton } from "../shared/AddBackButton";
 import { attachFpsHud } from "../shared/FpsHud";
-import type { ManagedScene } from "../types/App";
-import type { GameCard } from "../types/Scene";
+import type { GameCard, ManagedScene } from "../types/App";
 
 const games = gamesData as GameCard[];
 const GAME_ROUTES = new Set(games.map((game) => game.url));
@@ -107,6 +107,9 @@ class SceneManager {
   ): Promise<ManagedScene> {
     if (path === "/ace-of-shadows") {
       return createAceOfShadowsScene(app);
+    }
+    if (path === "/magic-words") {
+      return createMagicWordsScene(app);
     }
     if (path === "/phoenix-flame") {
       return createPhoenixFlameScene(app);

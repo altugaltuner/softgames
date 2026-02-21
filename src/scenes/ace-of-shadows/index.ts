@@ -2,7 +2,7 @@ import { Application, Assets, Container, Graphics, Sprite, Texture, } from "pixi
 import cardsData from "../../data/cards.json";
 import { AceOfShadowsConfig } from "./config";
 import { createSequentialCardLauncher } from "./tween-system/Tween";
-import type { AceOfShadowsScene } from "../../types/AceOfShadows";
+import type { AceOfShadowsScene } from "./types";
 import type { ResizePayload } from "../../types/App";
 
 const cards = cardsData as string[];
@@ -36,7 +36,6 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
     this.backgroundSprite.label = "woodenBackground";
     this.backgroundContainer.addChildAt(this.backgroundSprite, 0);
 
-
     const sprites = await this.createCardSprites(cards);
     this.addCardsToContainer(sprites);
     this.app.stage.addChild(this.container);
@@ -55,7 +54,6 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
       centerYRatio: AceOfShadowsConfig.centerYRatio,
       scale: AceOfShadowsConfig.cardScale,
     });
-
     return this;
   }
 

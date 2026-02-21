@@ -1,5 +1,5 @@
 import { Application, Container, Graphics, Text } from "pixi.js";
-import type { BackButtonOptions } from "../types/Shared";
+import type { BackButtonOptions } from "../types/App";
 
 class BackButtonHud {
   private readonly app: Application;

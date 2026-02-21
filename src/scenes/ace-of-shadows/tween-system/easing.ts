@@ -1,4 +1,4 @@
-import type { EaseInOutCubicConfig } from "../../../types/Easing";
+import type { EaseInOutCubicConfig } from "./types";
 
 export function easeInOutCubic(
   t: number,
