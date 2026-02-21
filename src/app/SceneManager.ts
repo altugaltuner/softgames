@@ -113,9 +113,10 @@ class SceneManager {
     }
     return this.createBackgroundOnlyScene(app);
   }
-
+  // bunlar çalışmıyor
   private createBackgroundOnlyScene(app: Application): ManagedScene {
     const container = new Container();
+    container.label = "BackgroundOnlyScene";
     const background = new Graphics();
     container.addChild(background);
     app.stage.addChild(container);
@@ -125,7 +126,7 @@ class SceneManager {
         const size = Math.max(width, height) * 3;
         background.clear();
         background
-          .fill({ color: 0x0b0d12 })
+          .fill({ color: 0xb5b6b7 })
           .rect(-size, -size, size * 3, size * 3);
       },
       destroy: () => {

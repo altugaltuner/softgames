@@ -3,7 +3,7 @@
   line-height: 1.5;
   font-weight: 400;
   color: #1f1f1f;
-  background-color: #f3f3f3;
+  background-color: #ffffff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -24,7 +24,6 @@ body {
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f3f3f3;
 }
 
 #app {
@@ -35,7 +34,6 @@ body {
 
 html.is-game,
 body.is-game {
-  background: #0b0d12;
   overflow: hidden;
 }
 
@@ -54,7 +52,7 @@ body.is-game #app {
 
 .menu-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 58px;
   font-weight: 700;
   color: #222;
 }
@@ -90,50 +88,15 @@ body.is-game #app {
 }
 
 .menu-card__image {
-  position: relative;
   height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
 }
 
-.menu-card__image::after {
-  content: "";
-  position: absolute;
-  inset: 20px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.2);
-  transform: rotate(-4deg);
-}
-
-.menu-card__glyph {
-  position: relative;
-  z-index: 1;
-  width: 88px;
-  height: 88px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #2c2c2c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 24px;
-  letter-spacing: 1px;
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
-}
-
-.menu-card__image--garden {
-  background: linear-gradient(135deg, #5ed18b, #4aa3ff);
-}
-
-.menu-card__image--sweet {
-  background: linear-gradient(135deg, #ff67c6, #ffa83d);
-}
-
-.menu-card__image--tripeaks {
-  background: linear-gradient(135deg, #2fc17f, #1f6fb8);
+.menu-card__cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .menu-card__body {

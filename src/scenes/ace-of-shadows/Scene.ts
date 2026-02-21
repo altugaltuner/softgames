@@ -1,4 +1,4 @@
-import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
+import { Application, Assets, Container, Graphics, Sprite, Texture, } from "pixi.js";
 import cardsData from "../../data/cards.json";
 import { AceOfShadowsConfig } from "./config";
 import { createSequentialCardLauncher } from "./tween-system/Tween";
@@ -6,6 +6,7 @@ import type { AceOfShadowsScene } from "../../types/AceOfShadows";
 import type { ResizePayload } from "../../types/App";
 
 const cards = cardsData as string[];
+const woodenBackgroundPath = "/assets/ui/wooden-bg.webp";
 
 class AceOfShadowsSceneImpl implements AceOfShadowsScene {
   readonly container = new Container();
@@ -13,6 +14,8 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
   private readonly backgroundContainer = new Container();
   private readonly cardContainer = new Container();
   private readonly background = new Graphics();
+  private backgroundSprite: Sprite | null = null;
+  private backgroundTexture: Texture | null = null;
   private cardLauncher: ReturnType<typeof createSequentialCardLauncher> | null =
     null;
 
@@ -27,6 +30,13 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
   }
 
   async init(): Promise<AceOfShadowsScene> {
+
+    this.backgroundTexture = await Assets.load<Texture>(woodenBackgroundPath);
+    this.backgroundSprite = new Sprite(this.backgroundTexture);
+    this.backgroundSprite.label = "woodenBackground";
+    this.backgroundContainer.addChildAt(this.backgroundSprite, 0);
+
+
     const sprites = await this.createCardSprites(cards);
     this.addCardsToContainer(sprites);
     this.app.stage.addChild(this.container);
@@ -50,11 +60,16 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
   }
 
   resize = ({ width, height }: ResizePayload): void => {
-    const size = Math.max(width, height) * 3;
     this.background.clear();
-    this.background
-      .fill({ color: 0x0b0d12 })
-      .rect(-size, -size, size * 3, size * 3);
+    if (this.backgroundTexture && this.backgroundSprite) {
+      const scale = Math.max(
+        width / this.backgroundTexture.width,
+        height / this.backgroundTexture.height,
+      );
+      this.backgroundSprite.anchor.set(0.5);
+      this.backgroundSprite.position.set(width / 2, height / 2);
+      this.backgroundSprite.scale.set(scale);
+    }
     this.cardLauncher?.updatePosAndScale(width, height);
   };
 

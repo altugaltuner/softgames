@@ -2,6 +2,11 @@ import gamesData from "../data/games.json";
 import type { GameCard, MenuSceneOptions } from "../types/Scene";
 
 const games = gamesData as GameCard[];
+const coverByTheme: Record<string, string> = {
+  garden: "/assets/ui/card-cover.webp",
+  sweet: "/assets/ui/messaging-cover.webp",
+  tripeaks: "/assets/ui/flame-cover.webp",
+};
 
 export function renderMenuScene(
   root: HTMLElement,
@@ -42,10 +47,12 @@ export function renderMenuScene(
 }
 
 function renderGameCard(game: GameCard): string {
+  const coverImage = coverByTheme[game.theme] ?? "/assets/ui/card-cover.webp";
+
   return `
     <button class="menu-card" type="button" data-url="${game.url}">
-      <div class="menu-card__image menu-card__image--${game.theme}">
-        <div class="menu-card__glyph">${game.glyph}</div>
+      <div class="menu-card__image">
+        <img class="menu-card__cover" src="${coverImage}" alt="${game.title} cover" loading="lazy" />
       </div>
       <div class="menu-card__body">
         <div class="menu-card__title">${game.title}</div>
