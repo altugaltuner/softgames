@@ -1,16 +1,9 @@
 import { Texture } from "pixi.js";
+import { MagicWordsSceneConfig } from "./config";
+import type { DialogueItem, MagicWordsApiResponse } from "./type";
 
-const MAGIC_WORDS_ENDPOINT =
-  "https://private-624120-softgamesassignment.apiary-mock.com/v2/magicwords";
-const BUBBLE_PATH = "/assets/ui/bubble.png";
-type AvatarItem = {
-  name: string;
-  url: string;
-};
-
-type MagicWordsApiResponse = {
-  avatars?: AvatarItem[];
-};
+const { endpointUrl: MAGIC_WORDS_ENDPOINT, bubblePath: BUBBLE_PATH } =
+  MagicWordsSceneConfig.assets;
 
 let preloadPromise: Promise<void> | null = null;
 let apiDataCache: MagicWordsApiResponse | null = null;
@@ -48,6 +41,11 @@ export async function getAvatarTextureByName(name: string): Promise<Texture | nu
     return null;
   }
   return textureByUrl.get(url) ?? (await ensureTextureCached(url));
+}
+
+export async function getMagicWordsDialogue(): Promise<DialogueItem[]> {
+  await preloadMagicWordsCache();
+  return apiDataCache?.dialogue ?? [];
 }
 
 async function getMagicWordsData(): Promise<MagicWordsApiResponse> {
