@@ -8,6 +8,32 @@ export const MagicWordsSceneConfig = {
     root: "MagicWordsScene",
     nextButton: "NextDialogueButton",
   },
+  header: {
+    text: "Magic Words",
+    topOffset: 88,
+    resolution: 3,
+    textStyle: {
+      fill: 0xffffff,
+      fontSize: 48,
+      fontFamily: "Bungee, sans-serif",
+      fontWeight: "400",
+    } as const,
+  },
+  interaction: {
+    controlsGap: 12,
+    buttonHoverOffset: -5,
+    buttonAnimDuration: 0.2,
+    autoPlayIntervalMs: 3000,
+    nextButton: {
+      hoverFillColor: 0x004b08,
+      pressedFillColor: 0x003d06,
+    },
+    playPauseButton: {
+      normalFillColor: 0xffffff,
+      hoverFillColor: 0xd9d9d9,
+      pressedFillColor: 0xbfbfbf,
+    },
+  },
   button: {
     text: "Next Dialogue",
     resolution: 5,

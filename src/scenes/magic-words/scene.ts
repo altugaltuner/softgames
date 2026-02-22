@@ -22,30 +22,20 @@ import { renderInlineDialog } from "./dialog-renderer";
 import { magicWordsEvents } from "./events";
 import { MagicWordsLoadingSkeleton } from "./loading-skeleton";
 
-const CONTROLS_GAP = 12;
-const BUTTON_HOVER_OFFSET = -5;
-const BUTTON_ANIM_DURATION = 0.2;
-const HEADER_TOP_OFFSET = 42;
-const BUTTON_HOVER_FILL_COLOR = 0x004b08;
-const BUTTON_PRESSED_FILL_COLOR = 0x003d06;
-const AUTO_PLAY_INTERVAL_MS = 3000;
-
 type SpeakerName = keyof typeof MagicWordsSceneConfig.avatar.slots;
 
 export class MagicWordsScene implements ManagedScene {
   private readonly app: Application;
   private readonly root = new Container();
+  private readonly backgroundLayer = new Container();
+  private readonly backgroundFill = new Graphics();
+  private readonly backgroundPattern = new Sprite(Texture.EMPTY);
   private readonly slots: Record<SpeakerName, AvatarSlot>;
   private readonly controlsContainer = new Container();
   private readonly headerText = new Text({
-    text: "Magic Words",
-    style: {
-      fill: 0xffffff,
-      fontSize: 30,
-      fontFamily: "Bungee, sans-serif",
-      fontWeight: "400",
-    },
-    resolution: 3,
+    text: MagicWordsSceneConfig.header.text,
+    style: MagicWordsSceneConfig.header.textStyle,
+    resolution: MagicWordsSceneConfig.header.resolution,
   });
   private readonly nextButton = new Container();
   private readonly nextButtonBg = new Graphics();
@@ -71,6 +61,9 @@ export class MagicWordsScene implements ManagedScene {
   constructor(app: Application) {
     this.app = app;
     this.root.label = MagicWordsSceneConfig.labels.root;
+    this.backgroundLayer.label = "ChatBackground";
+    this.backgroundPattern.alpha = 0.06;
+    this.backgroundLayer.addChild(this.backgroundFill, this.backgroundPattern);
 
     this.slots = {
       Sheldon: this.createAvatarSlot(
@@ -96,7 +89,7 @@ export class MagicWordsScene implements ManagedScene {
     this.loadingSkeleton = new MagicWordsLoadingSkeleton(
       Object.keys(this.slots).length,
     );
-    this.root.addChild(this.loadingSkeleton.layer);
+    this.root.addChild(this.backgroundLayer, this.loadingSkeleton.layer);
     this.controlsContainer.addChild(this.nextButton, this.playPauseButton);
     this.root.addChild(
       this.headerText,
@@ -117,6 +110,7 @@ export class MagicWordsScene implements ManagedScene {
 
   init = async (): Promise<ManagedScene> => {
     this.fireResize();
+    await this.loadBackgroundPattern();
     await preloadMagicWordsCache();
     await this.loadControlIcons();
     await this.applyTextures();
@@ -143,6 +137,19 @@ export class MagicWordsScene implements ManagedScene {
   }
 
   resize = ({ width, height }: ResizePayload): void => {
+    this.backgroundFill.clear();
+    this.backgroundFill
+      .rect(0, 0, width, height)
+      .fill({ color: 0x1b1c21 });
+    this.backgroundPattern.anchor.set(0.5);
+    this.backgroundPattern.position.set(width * 0.5, height * 0.5);
+    const textureWidth = this.backgroundPattern.texture.width;
+    const textureHeight = this.backgroundPattern.texture.height;
+    if (textureWidth > 0 && textureHeight > 0) {
+      const coverScale = Math.max(width / textureWidth, height / textureHeight);
+      this.backgroundPattern.scale.set(coverScale, coverScale);
+    }
+
     const avatarSize = Math.max(
       MagicWordsSceneConfig.avatar.minSize,
       Math.min(width, height) * MagicWordsSceneConfig.avatar.sizeRatioToViewport,
@@ -169,14 +176,15 @@ export class MagicWordsScene implements ManagedScene {
 
     const nextWidth = MagicWordsSceneConfig.button.width;
     const playPauseSize = MagicWordsSceneConfig.button.height;
-    const totalWidth = nextWidth + CONTROLS_GAP + playPauseSize;
+    const totalWidth =
+      nextWidth + MagicWordsSceneConfig.interaction.controlsGap + playPauseSize;
     const nextCenterX = -totalWidth * 0.5 + nextWidth * 0.5;
     const playPauseCenterX = totalWidth * 0.5 - playPauseSize * 0.5;
 
     const controlsX = width * 0.5;
     const controlsY = height - MagicWordsSceneConfig.button.bottomOffset;
     this.headerText.anchor.set(0.5);
-    this.headerText.position.set(width * 0.5, HEADER_TOP_OFFSET);
+    this.headerText.position.set(width * 0.5, MagicWordsSceneConfig.header.topOffset);
     this.controlsContainer.position.set(controlsX, controlsY);
     this.nextButton.position.set(nextCenterX, 0);
     this.playPauseButton.position.set(playPauseCenterX, 0);
@@ -301,6 +309,9 @@ export class MagicWordsScene implements ManagedScene {
       this.nextButtonBg,
       MagicWordsSceneConfig.button.width,
       MagicWordsSceneConfig.button.height,
+      MagicWordsSceneConfig.button.fillColor,
+      MagicWordsSceneConfig.interaction.nextButton.hoverFillColor,
+      MagicWordsSceneConfig.interaction.nextButton.pressedFillColor,
     );
   }
 
@@ -345,6 +356,9 @@ export class MagicWordsScene implements ManagedScene {
       this.playPauseButtonBg,
       size,
       size,
+      MagicWordsSceneConfig.interaction.playPauseButton.normalFillColor,
+      MagicWordsSceneConfig.interaction.playPauseButton.hoverFillColor,
+      MagicWordsSceneConfig.interaction.playPauseButton.pressedFillColor,
     );
   }
 
@@ -353,16 +367,15 @@ export class MagicWordsScene implements ManagedScene {
     background: Graphics,
     width: number,
     height: number,
+    normalColor: number,
+    hoverColor: number,
+    pressedColor: number,
   ): void {
-    const normalColor = MagicWordsSceneConfig.button.fillColor;
-    const hoverColor = BUTTON_HOVER_FILL_COLOR;
-    const pressedColor = BUTTON_PRESSED_FILL_COLOR;
-
     button.on("pointerover", () => {
       this.drawButtonBackground(background, width, height, hoverColor);
       gsap.to(button.position, {
-        y: BUTTON_HOVER_OFFSET,
-        duration: BUTTON_ANIM_DURATION,
+        y: MagicWordsSceneConfig.interaction.buttonHoverOffset,
+        duration: MagicWordsSceneConfig.interaction.buttonAnimDuration,
         ease: "power2.out",
         overwrite: true,
       });
@@ -372,7 +385,7 @@ export class MagicWordsScene implements ManagedScene {
       this.drawButtonBackground(background, width, height, normalColor);
       gsap.to(button.position, {
         y: 0,
-        duration: BUTTON_ANIM_DURATION,
+        duration: MagicWordsSceneConfig.interaction.buttonAnimDuration,
         ease: "power2.out",
         overwrite: true,
       });
@@ -390,7 +403,7 @@ export class MagicWordsScene implements ManagedScene {
       this.drawButtonBackground(background, width, height, normalColor);
       gsap.to(button.position, {
         y: 0,
-        duration: BUTTON_ANIM_DURATION,
+        duration: MagicWordsSceneConfig.interaction.buttonAnimDuration,
         ease: "power2.out",
         overwrite: true,
       });
@@ -421,6 +434,16 @@ export class MagicWordsScene implements ManagedScene {
     ]);
     this.playIcon.texture = playTexture;
     this.pauseIcon.texture = pauseTexture;
+  }
+
+  private async loadBackgroundPattern(): Promise<void> {
+    try {
+      this.backgroundPattern.texture = await Assets.load<Texture>(
+        "/assets/ui/chat-bg.webp",
+      );
+    } catch {
+      this.backgroundPattern.texture = Texture.EMPTY;
+    }
   }
 
   private togglePlayPause = (): void => {
@@ -480,7 +503,7 @@ export class MagicWordsScene implements ManagedScene {
       }
       this.showNextDialogue();
       this.scheduleNextAutoPlay();
-    }, AUTO_PLAY_INTERVAL_MS);
+    }, MagicWordsSceneConfig.interaction.autoPlayIntervalMs);
   }
 
   private updatePlayPauseIcon(): void {
