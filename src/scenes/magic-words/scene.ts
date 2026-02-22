@@ -28,6 +28,7 @@ const BUTTON_ANIM_DURATION = 0.2;
 const HEADER_TOP_OFFSET = 42;
 const BUTTON_HOVER_FILL_COLOR = 0x004b08;
 const BUTTON_PRESSED_FILL_COLOR = 0x003d06;
+const AUTO_PLAY_INTERVAL_MS = 3000;
 
 type SpeakerName = keyof typeof MagicWordsSceneConfig.avatar.slots;
 
@@ -59,7 +60,9 @@ export class MagicWordsScene implements ManagedScene {
   private readonly pauseIcon = new Sprite(Texture.EMPTY);
   private readonly loadingSkeleton: MagicWordsLoadingSkeleton;
   private isLoaded = false;
-  private isPlaying = true;
+  private isAutoPlaying = false;
+  private hasAutoPlayStarted = false;
+  private autoPlayTimerId: number | null = null;
   private dialogues: DialogueItem[] = [];
   private currentDialogueIndex = -1;
   private activeSpeaker: SpeakerName | null = null;
@@ -186,8 +189,9 @@ export class MagicWordsScene implements ManagedScene {
   };
 
   destroy = (): void => {
-    this.nextButton.off("pointertap", this.showNextDialogue);
+    this.nextButton.off("pointertap", this.onNextButtonTap);
     this.playPauseButton.off("pointertap", this.togglePlayPause);
+    this.stopAutoPlay();
     this.removeDialogueProgressLogger?.();
     this.removeDialogueProgressLogger = null;
     for (const slot of Object.values(this.slots)) {
@@ -291,7 +295,7 @@ export class MagicWordsScene implements ManagedScene {
     );
 
     this.nextButton.addChild(this.nextButtonBg, this.nextButtonText);
-    this.nextButton.on("pointertap", this.showNextDialogue);
+    this.nextButton.on("pointertap", this.onNextButtonTap);
     this.setupButtonInteractions(
       this.nextButton,
       this.nextButtonBg,
@@ -335,6 +339,7 @@ export class MagicWordsScene implements ManagedScene {
       this.pauseIcon,
     );
     this.playPauseButton.on("pointertap", this.togglePlayPause);
+    this.updatePlayPauseIcon();
     this.setupButtonInteractions(
       this.playPauseButton,
       this.playPauseButtonBg,
@@ -419,10 +424,69 @@ export class MagicWordsScene implements ManagedScene {
   }
 
   private togglePlayPause = (): void => {
-    this.isPlaying = !this.isPlaying;
-    this.playIcon.visible = this.isPlaying;
-    this.pauseIcon.visible = !this.isPlaying;
+    if (this.isAutoPlaying) {
+      this.stopAutoPlay();
+      return;
+    }
+
+    this.startAutoPlay();
   };
+
+  private onNextButtonTap = (): void => {
+    this.showNextDialogue();
+    if (this.isAutoPlaying) {
+      this.scheduleNextAutoPlay();
+    }
+  };
+
+  private startAutoPlay(): void {
+    if (this.dialogues.length === 0) {
+      return;
+    }
+
+    if (!this.hasAutoPlayStarted) {
+      this.currentDialogueIndex = -1;
+      this.hasAutoPlayStarted = true;
+    }
+
+    this.isAutoPlaying = true;
+    this.updatePlayPauseIcon();
+    this.showNextDialogue();
+    this.scheduleNextAutoPlay();
+  }
+
+  private stopAutoPlay(): void {
+    this.isAutoPlaying = false;
+    this.updatePlayPauseIcon();
+    if (this.autoPlayTimerId !== null) {
+      window.clearTimeout(this.autoPlayTimerId);
+      this.autoPlayTimerId = null;
+    }
+  }
+
+  private scheduleNextAutoPlay(): void {
+    if (this.autoPlayTimerId !== null) {
+      window.clearTimeout(this.autoPlayTimerId);
+    }
+
+    if (!this.isAutoPlaying) {
+      this.autoPlayTimerId = null;
+      return;
+    }
+
+    this.autoPlayTimerId = window.setTimeout(() => {
+      if (!this.isAutoPlaying) {
+        return;
+      }
+      this.showNextDialogue();
+      this.scheduleNextAutoPlay();
+    }, AUTO_PLAY_INTERVAL_MS);
+  }
+
+  private updatePlayPauseIcon(): void {
+    this.playIcon.visible = !this.isAutoPlaying;
+    this.pauseIcon.visible = this.isAutoPlaying;
+  }
 
   private positionSlot(slot: AvatarSlot, x: number, y: number, avatarSize: number): void {
     slot.container.position.set(x, y);
