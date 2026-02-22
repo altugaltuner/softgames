@@ -1,18 +1,23 @@
 import { Application, Container, Graphics, Sprite, Text, Texture } from "pixi.js";
+import { gsap } from "gsap";
 import type { ManagedScene, ResizePayload } from "../../types/App";
 import type { AvatarSlot, DialogueItem } from "./type";
 import { MagicWordsSceneConfig } from "./config";
 import {
   getAvatarTextureByName,
   getBubbleTexture,
+  getEmojiTextureByName,
   getMagicWordsDialogue,
   preloadMagicWordsCache,
 } from "./cache";
+import { renderInlineDialog } from "./dialog-renderer";
+
+type SpeakerName = keyof typeof MagicWordsSceneConfig.avatar.slots;
 
 export class MagicWordsScene implements ManagedScene {
   private readonly app: Application;
   private readonly root = new Container();
-  private readonly slots: Record<string, AvatarSlot>;
+  private readonly slots: Record<SpeakerName, AvatarSlot>;
   private readonly nextButton = new Container();
   private readonly nextButtonBg = new Graphics();
   private readonly nextButtonText = new Text({
@@ -21,6 +26,7 @@ export class MagicWordsScene implements ManagedScene {
   });
   private dialogues: DialogueItem[] = [];
   private currentDialogueIndex = -1;
+  private activeSpeaker: SpeakerName | null = null;
 
   constructor(app: Application) {
     this.app = app;
@@ -30,16 +36,19 @@ export class MagicWordsScene implements ManagedScene {
       Sheldon: this.createAvatarSlot(
         "SheldonContainer",
         "SheldonSprite",
+        "Sheldon",
         MagicWordsSceneConfig.avatar.slots.Sheldon.side,
       ),
       Penny: this.createAvatarSlot(
         "PennyContainer",
         "PennySprite",
+        "Penny",
         MagicWordsSceneConfig.avatar.slots.Penny.side,
       ),
       Leonard: this.createAvatarSlot(
         "LeonardContainer",
         "LeonardSprite",
+        "Leonard",
         MagicWordsSceneConfig.avatar.slots.Leonard.side,
       ),
     };
@@ -69,24 +78,14 @@ export class MagicWordsScene implements ManagedScene {
       Math.min(width, height) * MagicWordsSceneConfig.avatar.sizeRatioToViewport,
     );
 
-    this.positionSlot(
-      this.slots.Sheldon,
-      width * MagicWordsSceneConfig.avatar.slots.Sheldon.xRatio,
-      height * MagicWordsSceneConfig.avatar.slots.Sheldon.yRatio,
-      avatarSize,
-    );
-    this.positionSlot(
-      this.slots.Penny,
-      width * MagicWordsSceneConfig.avatar.slots.Penny.xRatio,
-      height * MagicWordsSceneConfig.avatar.slots.Penny.yRatio,
-      avatarSize,
-    );
-    this.positionSlot(
-      this.slots.Leonard,
-      width * MagicWordsSceneConfig.avatar.slots.Leonard.xRatio,
-      height * MagicWordsSceneConfig.avatar.slots.Leonard.yRatio,
-      avatarSize,
-    );
+    const orientation = width >= height ? "landscape" : "portrait";
+
+    for (const [name, slot] of Object.entries(this.slots)) {
+      const cfg = MagicWordsSceneConfig.avatar.slots[name as SpeakerName];
+      const pos = cfg[orientation];
+      this.positionSlot(slot, width * pos.xRatio, height * pos.yRatio, avatarSize);
+    }
+    this.applyFocusScale(false);
 
     this.nextButton.position.set(
       width * 0.5,
@@ -96,22 +95,30 @@ export class MagicWordsScene implements ManagedScene {
 
   destroy = (): void => {
     this.nextButton.off("pointertap", this.showNextDialogue);
+    for (const slot of Object.values(this.slots)) {
+      gsap.killTweensOf(slot.container.scale);
+    }
     this.root.destroy({ children: true });
   };
 
   private createAvatarSlot(
     containerLabel: string,
     avatarLabel: string,
+    displayName: string,
     side: "left" | "right",
   ): AvatarSlot {
     const container = new Container();
     container.label = containerLabel;
     const dialogueContainer = new Container();
     dialogueContainer.label = `${avatarLabel}DialogueContainer`;
+    const dialogueContent = new Container();
+    dialogueContent.label = `${avatarLabel}DialogueContent`;
+    dialogueContent.visible = false;
 
     const bubble = new Sprite(Texture.WHITE);
     bubble.label = `${avatarLabel}Bubble`;
     bubble.anchor.set(0.5);
+    bubble.position.set(0, 0);
     bubble.visible = false;
 
     const avatar = new Sprite(Texture.WHITE);
@@ -121,17 +128,26 @@ export class MagicWordsScene implements ManagedScene {
     avatar.height = MagicWordsSceneConfig.avatar.minSize;
     avatar.visible = false;
 
-    const dialogueText = new Text({
-      text: "",
-      style: MagicWordsSceneConfig.dialogue.textStyle,
-      resolution: MagicWordsSceneConfig.dialogue.resolution,
+    const nameText = new Text({
+      text: displayName,
+      style: MagicWordsSceneConfig.avatar.nameTextStyle,
     });
-    dialogueText.anchor.set(0.5);
-    dialogueText.visible = false;
+    nameText.anchor.set(0.5, 0);
+    nameText.position.set(0, MagicWordsSceneConfig.avatar.nameOffsetY);
+    nameText.resolution = MagicWordsSceneConfig.dialogue.resolution;
 
-    dialogueContainer.addChild(bubble, dialogueText);
-    container.addChild(dialogueContainer, avatar);
-    return { container, bubble, avatar, dialogueText, side };
+    dialogueContainer.addChild(bubble, dialogueContent);
+    container.addChild(dialogueContainer, avatar, nameText);
+    return {
+      container,
+      dialogueContainer,
+      dialogueContent,
+      bubble,
+      avatar,
+      nameText,
+      baseScale: 1,
+      side,
+    };
   }
 
   private setupNextButton(): void {
@@ -170,34 +186,24 @@ export class MagicWordsScene implements ManagedScene {
 
   private positionSlot(slot: AvatarSlot, x: number, y: number, avatarSize: number): void {
     slot.container.position.set(x, y);
-    const slotScale = avatarSize / MagicWordsSceneConfig.avatar.minSize;
-    slot.container.scale.set(slotScale);
+    slot.baseScale = avatarSize / MagicWordsSceneConfig.avatar.minSize;
+    slot.nameText.position.set(0, MagicWordsSceneConfig.avatar.nameOffsetY);
+    this.resetDialogueTransform(slot);
 
     if (slot.side === "left") {
-      slot.bubble.position.set(
-        MagicWordsSceneConfig.bubble.left.x,
-        MagicWordsSceneConfig.bubble.left.y,
-      );
       slot.bubble.scale.set(
         MagicWordsSceneConfig.bubble.left.scaleX,
         MagicWordsSceneConfig.bubble.left.scaleY,
       );
-      slot.dialogueText.position.set(
-        MagicWordsSceneConfig.bubble.left.x,
-        MagicWordsSceneConfig.bubble.left.textY,
-      );
+      slot.dialogueContent.position.set(0, MagicWordsSceneConfig.bubble.left.textY - MagicWordsSceneConfig.bubble.left.y);
     } else {
-      slot.bubble.position.set(
-        MagicWordsSceneConfig.bubble.right.x,
-        MagicWordsSceneConfig.bubble.right.y,
-      );
       slot.bubble.scale.set(
         MagicWordsSceneConfig.bubble.right.scaleX,
         MagicWordsSceneConfig.bubble.right.scaleY,
       );
-      slot.dialogueText.position.set(
-        MagicWordsSceneConfig.bubble.right.x,
-        MagicWordsSceneConfig.bubble.right.textY,
+      slot.dialogueContent.position.set(
+        0,
+        MagicWordsSceneConfig.bubble.right.textY - MagicWordsSceneConfig.bubble.right.y,
       );
     }
   }
@@ -205,8 +211,9 @@ export class MagicWordsScene implements ManagedScene {
   private hideAllDialogues(): void {
     for (const slot of Object.values(this.slots)) {
       slot.bubble.visible = false;
-      slot.dialogueText.visible = false;
-      slot.dialogueText.text = "";
+      slot.dialogueContent.visible = false;
+      slot.dialogueContent.removeChildren().forEach((child) => child.destroy());
+      this.resetDialogueTransform(slot);
     }
   }
 
@@ -219,13 +226,87 @@ export class MagicWordsScene implements ManagedScene {
     this.currentDialogueIndex = (this.currentDialogueIndex + 1) % this.dialogues.length;
     const dialogue = this.dialogues[this.currentDialogueIndex];
 
-    const slot =
-      this.slots[dialogue.name] ??
-      this.slots[MagicWordsSceneConfig.dialogue.fallbackSpeaker];
+    const speakerName = (dialogue.name in this.slots
+      ? dialogue.name
+      : MagicWordsSceneConfig.dialogue.fallbackSpeaker) as SpeakerName;
+    const slot = this.slots[speakerName];
+    this.activeSpeaker = speakerName;
+    this.applyFocusScale(true);
     slot.bubble.visible = true;
-    slot.dialogueText.text = dialogue.text;
-    slot.dialogueText.visible = true;
+    const inlineContent = renderInlineDialog(dialogue.text, getEmojiTextureByName, {
+      textStyle: MagicWordsSceneConfig.dialogue.textStyle,
+      resolution: MagicWordsSceneConfig.dialogue.resolution,
+      maxWidth: MagicWordsSceneConfig.dialogue.textStyle.wordWrapWidth,
+      emojiSize: Math.max(12, MagicWordsSceneConfig.dialogue.textStyle.fontSize * 1.25),
+    });
+    slot.dialogueContent.removeChildren().forEach((child) => child.destroy());
+    slot.dialogueContent.addChild(inlineContent);
+    slot.dialogueContent.visible = true;
+    this.animateDialogueIn(slot);
   };
+
+  private resetDialogueTransform(slot: AvatarSlot): void {
+    const base = this.getDialogueBasePosition(slot.side);
+    gsap.killTweensOf(slot.dialogueContainer.scale);
+    slot.dialogueContainer.pivot.set(0, 0);
+    slot.dialogueContainer.position.set(base.x, base.y);
+    slot.dialogueContainer.scale.set(1, 1);
+  }
+
+  private animateDialogueIn(slot: AvatarSlot): void {
+    const base = this.getDialogueBasePosition(slot.side);
+    const bounds = slot.dialogueContainer.getLocalBounds();
+    const pivotX = slot.side === "left" ? bounds.x : bounds.x + bounds.width;
+    const pivotY = bounds.y + bounds.height;
+
+    slot.dialogueContainer.pivot.set(pivotX, pivotY);
+    slot.dialogueContainer.position.set(base.x + pivotX, base.y + pivotY);
+
+    gsap.killTweensOf(slot.dialogueContainer.scale);
+    slot.dialogueContainer.scale.set(0.15, 0.15);
+    gsap.to(slot.dialogueContainer.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.2,
+      ease: "power2.out",
+      overwrite: true,
+    });
+  }
+
+  private getDialogueBasePosition(side: "left" | "right"): { x: number; y: number } {
+    if (side === "left") {
+      return {
+        x: MagicWordsSceneConfig.bubble.left.x,
+        y: MagicWordsSceneConfig.bubble.left.y,
+      };
+    }
+    return {
+      x: MagicWordsSceneConfig.bubble.right.x,
+      y: MagicWordsSceneConfig.bubble.right.y,
+    };
+  }
+
+  private applyFocusScale(animate: boolean): void {
+    for (const [name, slot] of Object.entries(this.slots)) {
+      const isActive = this.activeSpeaker === (name as SpeakerName);
+      const targetScale =
+        slot.baseScale * (isActive ? MagicWordsSceneConfig.avatar.focusScale : 1);
+
+      if (!animate) {
+        gsap.killTweensOf(slot.container.scale);
+        slot.container.scale.set(targetScale);
+        continue;
+      }
+
+      gsap.to(slot.container.scale, {
+        x: targetScale,
+        y: targetScale,
+        duration: MagicWordsSceneConfig.avatar.focusDuration,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    }
+  }
 
   private async applyTextures(): Promise<void> {
     const bubbleTexture = getBubbleTexture();

@@ -9,6 +9,7 @@ let preloadPromise: Promise<void> | null = null;
 let apiDataCache: MagicWordsApiResponse | null = null;
 const textureByUrl = new Map<string, Texture>();
 const avatarUrlByName = new Map<string, string>();
+const emojiUrlByName = new Map<string, string>();
 
 export function preloadMagicWordsCache(): Promise<void> {
   if (preloadPromise) {
@@ -18,10 +19,15 @@ export function preloadMagicWordsCache(): Promise<void> {
   preloadPromise = (async () => {
     const data = await getMagicWordsData();
     const avatarUrls = (data.avatars ?? []).map((avatar) => avatar.url);
-    const urls = [BUBBLE_PATH, ...avatarUrls];
+    const emojis = data.emojis ?? data.emojies ?? [];
+    const emojiUrls = emojis.map((emoji) => emoji.url);
+    const urls = [BUBBLE_PATH, ...avatarUrls, ...emojiUrls];
 
     for (const avatar of data.avatars ?? []) {
       avatarUrlByName.set(avatar.name, avatar.url);
+    }
+    for (const emoji of emojis) {
+      emojiUrlByName.set(emoji.name, emoji.url);
     }
 
     await Promise.all(urls.map((url) => ensureTextureCached(url)));
@@ -41,6 +47,14 @@ export async function getAvatarTextureByName(name: string): Promise<Texture | nu
     return null;
   }
   return textureByUrl.get(url) ?? (await ensureTextureCached(url));
+}
+
+export function getEmojiTextureByName(name: string): Texture | null {
+  const url = emojiUrlByName.get(name);
+  if (!url) {
+    return null;
+  }
+  return textureByUrl.get(url) ?? null;
 }
 
 export async function getMagicWordsDialogue(): Promise<DialogueItem[]> {

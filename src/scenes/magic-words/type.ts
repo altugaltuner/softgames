@@ -1,6 +1,11 @@
-import type { Container, Sprite, Text } from "pixi.js";
+import type { Container, Sprite, Text, TextStyle, Texture } from "pixi.js";
 
 export type AvatarItem = {
+  name: string;
+  url: string;
+};
+
+export type EmojiItem = {
   name: string;
   url: string;
 };
@@ -12,13 +17,35 @@ export type DialogueItem = {
 
 export type MagicWordsApiResponse = {
   avatars?: AvatarItem[];
+  emojis?: EmojiItem[];
+  emojies?: EmojiItem[];
   dialogue?: DialogueItem[];
 };
 
+export type DialogueSegment =
+  | { kind: "text"; value: string }
+  | { kind: "emoji"; name: string };
+
+export type TextStyleInput = TextStyle | ConstructorParameters<typeof TextStyle>[0];
+
+export type InlineDialogRenderOptions = {
+  textStyle: TextStyleInput;
+  resolution: number;
+  maxWidth?: number;
+  emojiSize?: number;
+  lineHeight?: number;
+  fallbackEmojiName?: string;
+};
+
+export type EmojiTextureLookup = (name: string) => Texture | null;
+
 export type AvatarSlot = {
   container: Container;
+  dialogueContainer: Container;
+  dialogueContent: Container;
   bubble: Sprite;
   avatar: Sprite;
-  dialogueText: Text;
+  nameText: Text;
+  baseScale: number;
   side: "left" | "right";
 };
