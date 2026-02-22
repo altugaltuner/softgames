@@ -1,6 +1,6 @@
 import {
   Application,
-  BlurFilter,
+  Assets,
   Container,
   Graphics,
   Sprite,
@@ -20,9 +20,14 @@ import {
 } from "./cache";
 import { renderInlineDialog } from "./dialog-renderer";
 import { magicWordsEvents } from "./events";
+import { MagicWordsLoadingSkeleton } from "./loading-skeleton";
 
-const SKELETON_COLOR = 0x696969;
-const SKELETON_ALPHA = 0.6;
+const CONTROLS_GAP = 12;
+const BUTTON_HOVER_OFFSET = -5;
+const BUTTON_ANIM_DURATION = 0.2;
+const HEADER_TOP_OFFSET = 42;
+const BUTTON_HOVER_FILL_COLOR = 0x004b08;
+const BUTTON_PRESSED_FILL_COLOR = 0x003d06;
 
 type SpeakerName = keyof typeof MagicWordsSceneConfig.avatar.slots;
 
@@ -30,6 +35,17 @@ export class MagicWordsScene implements ManagedScene {
   private readonly app: Application;
   private readonly root = new Container();
   private readonly slots: Record<SpeakerName, AvatarSlot>;
+  private readonly controlsContainer = new Container();
+  private readonly headerText = new Text({
+    text: "Magic Words",
+    style: {
+      fill: 0xffffff,
+      fontSize: 30,
+      fontFamily: "Bungee, sans-serif",
+      fontWeight: "400",
+    },
+    resolution: 3,
+  });
   private readonly nextButton = new Container();
   private readonly nextButtonBg = new Graphics();
   private readonly nextButtonText = new Text({
@@ -37,10 +53,13 @@ export class MagicWordsScene implements ManagedScene {
     style: MagicWordsSceneConfig.button.textStyle,
     resolution: MagicWordsSceneConfig.button.resolution,
   });
-  private readonly skeletonLayer = new Container();
-  private readonly skeletonAvatars: Graphics[] = [];
-  private readonly skeletonButton = new Graphics();
+  private readonly playPauseButton = new Container();
+  private readonly playPauseButtonBg = new Graphics();
+  private readonly playIcon = new Sprite(Texture.EMPTY);
+  private readonly pauseIcon = new Sprite(Texture.EMPTY);
+  private readonly loadingSkeleton: MagicWordsLoadingSkeleton;
   private isLoaded = false;
+  private isPlaying = true;
   private dialogues: DialogueItem[] = [];
   private currentDialogueIndex = -1;
   private activeSpeaker: SpeakerName | null = null;
@@ -71,63 +90,38 @@ export class MagicWordsScene implements ManagedScene {
       ),
     };
 
-    this.setupSkeletonLayer();
-    this.root.addChild(this.skeletonLayer);
+    this.loadingSkeleton = new MagicWordsLoadingSkeleton(
+      Object.keys(this.slots).length,
+    );
+    this.root.addChild(this.loadingSkeleton.layer);
+    this.controlsContainer.addChild(this.nextButton, this.playPauseButton);
     this.root.addChild(
+      this.headerText,
       this.slots.Sheldon.container,
       this.slots.Penny.container,
       this.slots.Leonard.container,
-      this.nextButton,
+      this.controlsContainer,
     );
-    this.nextButton.visible = false;
+    this.controlsContainer.visible = false;
     for (const slot of Object.values(this.slots)) {
       slot.container.visible = false;
     }
     this.app.stage.addChild(this.root);
 
     this.setupNextButton();
-  }
-
-  private getAvatarSlotCount(): number {
-    return Object.keys(MagicWordsSceneConfig.avatar.slots).length;
-  }
-
-  private setupSkeletonLayer(): void {
-    this.skeletonLayer.label = "SkeletonLayer";
-    this.skeletonLayer.filters = [
-      new BlurFilter({ strength: 2, quality: 10 }),
-    ];
-    const count = this.getAvatarSlotCount();
-    for (let i = 0; i < count; i++) {
-      const g = new Graphics();
-      this.skeletonAvatars.push(g);
-      this.skeletonLayer.addChild(g);
-    }
-    this.skeletonButton
-      .roundRect(
-        0,
-        0,
-        MagicWordsSceneConfig.button.width,
-        MagicWordsSceneConfig.button.height,
-        MagicWordsSceneConfig.button.radius,
-      )
-      .fill({ color: SKELETON_COLOR, alpha: SKELETON_ALPHA });
-    this.skeletonButton.pivot.set(
-      MagicWordsSceneConfig.button.width * 0.5,
-      MagicWordsSceneConfig.button.height * 0.5,
-    );
-    this.skeletonLayer.addChild(this.skeletonButton);
+    this.setupPlayPauseButton();
   }
 
   init = async (): Promise<ManagedScene> => {
     this.fireResize();
     await preloadMagicWordsCache();
+    await this.loadControlIcons();
     await this.applyTextures();
     this.dialogues = await getMagicWordsDialogue();
     this.setupDialogueProgressLogger();
     this.hideAllDialogues();
-    this.skeletonLayer.visible = false;
-    this.nextButton.visible = true;
+    this.loadingSkeleton.setVisible(false);
+    this.controlsContainer.visible = true;
     for (const slot of Object.values(this.slots)) {
       slot.container.visible = true;
     }
@@ -164,31 +158,36 @@ export class MagicWordsScene implements ManagedScene {
       const x = width * pos.xRatio;
       const y = height * pos.yRatio;
       this.positionSlot(slot, x, y, avatarSize);
-      const skeleton = this.skeletonAvatars[i];
-      if (skeleton) {
-        skeleton.clear();
-        skeleton
-          .roundRect(-avatarSize * 0.5, -avatarSize * 0.5, avatarSize, avatarSize, 8)
-          .fill({ color: SKELETON_COLOR, alpha: SKELETON_ALPHA });
-        skeleton.position.set(x, y);
-      }
+      this.loadingSkeleton.updateAvatarPlaceholder(i, x, y, avatarSize);
     }
     if (this.isLoaded) {
       this.applyFocusScale(false);
     }
 
-    this.nextButton.position.set(
-      width * 0.5,
-      height - MagicWordsSceneConfig.button.bottomOffset,
-    );
-    this.skeletonButton.position.set(
-      width * 0.5,
-      height - MagicWordsSceneConfig.button.bottomOffset,
+    const nextWidth = MagicWordsSceneConfig.button.width;
+    const playPauseSize = MagicWordsSceneConfig.button.height;
+    const totalWidth = nextWidth + CONTROLS_GAP + playPauseSize;
+    const nextCenterX = -totalWidth * 0.5 + nextWidth * 0.5;
+    const playPauseCenterX = totalWidth * 0.5 - playPauseSize * 0.5;
+
+    const controlsX = width * 0.5;
+    const controlsY = height - MagicWordsSceneConfig.button.bottomOffset;
+    this.headerText.anchor.set(0.5);
+    this.headerText.position.set(width * 0.5, HEADER_TOP_OFFSET);
+    this.controlsContainer.position.set(controlsX, controlsY);
+    this.nextButton.position.set(nextCenterX, 0);
+    this.playPauseButton.position.set(playPauseCenterX, 0);
+    this.loadingSkeleton.updateControlPlaceholders(
+      controlsX,
+      controlsY,
+      nextCenterX,
+      playPauseCenterX,
     );
   };
 
   destroy = (): void => {
     this.nextButton.off("pointertap", this.showNextDialogue);
+    this.playPauseButton.off("pointertap", this.togglePlayPause);
     this.removeDialogueProgressLogger?.();
     this.removeDialogueProgressLogger = null;
     for (const slot of Object.values(this.slots)) {
@@ -293,7 +292,137 @@ export class MagicWordsScene implements ManagedScene {
 
     this.nextButton.addChild(this.nextButtonBg, this.nextButtonText);
     this.nextButton.on("pointertap", this.showNextDialogue);
+    this.setupButtonInteractions(
+      this.nextButton,
+      this.nextButtonBg,
+      MagicWordsSceneConfig.button.width,
+      MagicWordsSceneConfig.button.height,
+    );
   }
+
+  private setupPlayPauseButton(): void {
+    const size = MagicWordsSceneConfig.button.height;
+    this.playPauseButton.label = "PlayPauseButton";
+    this.playPauseButton.eventMode = "static";
+    this.playPauseButton.cursor = "pointer";
+    this.playPauseButton.pivot.set(size * 0.5, size * 0.5);
+
+    this.playPauseButtonBg
+      .roundRect(0, 0, size, size, MagicWordsSceneConfig.button.radius)
+      .fill({ color: 0xffffff })
+      .stroke({
+        color: MagicWordsSceneConfig.button.strokeColor,
+        width: MagicWordsSceneConfig.button.strokeWidth,
+        alpha: MagicWordsSceneConfig.button.strokeAlpha,
+      });
+
+    this.playIcon.anchor.set(0.5);
+    this.playIcon.position.set(size * 0.5, size * 0.5);
+    this.playIcon.width = 22;
+    this.playIcon.height = 22;
+    this.playIcon.tint = 0xffffff;
+
+    this.pauseIcon.anchor.set(0.5);
+    this.pauseIcon.position.set(size * 0.5, size * 0.5);
+    this.pauseIcon.width = 22;
+    this.pauseIcon.height = 22;
+    this.pauseIcon.tint = 0xffffff;
+    this.pauseIcon.visible = false;
+
+    this.playPauseButton.addChild(
+      this.playPauseButtonBg,
+      this.playIcon,
+      this.pauseIcon,
+    );
+    this.playPauseButton.on("pointertap", this.togglePlayPause);
+    this.setupButtonInteractions(
+      this.playPauseButton,
+      this.playPauseButtonBg,
+      size,
+      size,
+    );
+  }
+
+  private setupButtonInteractions(
+    button: Container,
+    background: Graphics,
+    width: number,
+    height: number,
+  ): void {
+    const normalColor = MagicWordsSceneConfig.button.fillColor;
+    const hoverColor = BUTTON_HOVER_FILL_COLOR;
+    const pressedColor = BUTTON_PRESSED_FILL_COLOR;
+
+    button.on("pointerover", () => {
+      this.drawButtonBackground(background, width, height, hoverColor);
+      gsap.to(button.position, {
+        y: BUTTON_HOVER_OFFSET,
+        duration: BUTTON_ANIM_DURATION,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    });
+
+    button.on("pointerout", () => {
+      this.drawButtonBackground(background, width, height, normalColor);
+      gsap.to(button.position, {
+        y: 0,
+        duration: BUTTON_ANIM_DURATION,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    });
+
+    button.on("pointerdown", () => {
+      this.drawButtonBackground(background, width, height, pressedColor);
+    });
+
+    button.on("pointerup", () => {
+      this.drawButtonBackground(background, width, height, hoverColor);
+    });
+
+    button.on("pointerupoutside", () => {
+      this.drawButtonBackground(background, width, height, normalColor);
+      gsap.to(button.position, {
+        y: 0,
+        duration: BUTTON_ANIM_DURATION,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    });
+  }
+
+  private drawButtonBackground(
+    background: Graphics,
+    width: number,
+    height: number,
+    color: number,
+  ): void {
+    background.clear();
+    background
+      .roundRect(0, 0, width, height, MagicWordsSceneConfig.button.radius)
+      .fill({ color })
+      .stroke({
+        color: MagicWordsSceneConfig.button.strokeColor,
+        width: MagicWordsSceneConfig.button.strokeWidth,
+        alpha: MagicWordsSceneConfig.button.strokeAlpha,
+      });
+  }
+
+  private async loadControlIcons(): Promise<void> {
+    const [playTexture, pauseTexture] = await Promise.all([
+      Assets.load<Texture>("/play.svg"),
+      Assets.load<Texture>("/pause.svg"),
+    ]);
+    this.playIcon.texture = playTexture;
+    this.pauseIcon.texture = pauseTexture;
+  }
+
+  private togglePlayPause = (): void => {
+    this.isPlaying = !this.isPlaying;
+    this.playIcon.visible = this.isPlaying;
+    this.pauseIcon.visible = !this.isPlaying;
+  };
 
   private positionSlot(slot: AvatarSlot, x: number, y: number, avatarSize: number): void {
     slot.container.position.set(x, y);
