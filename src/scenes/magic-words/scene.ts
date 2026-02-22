@@ -19,6 +19,7 @@ import {
   preloadMagicWordsCache,
 } from "./cache";
 import { renderInlineDialog } from "./dialog-renderer";
+import { magicWordsEvents } from "./events";
 
 const SKELETON_COLOR = 0x696969;
 const SKELETON_ALPHA = 0.6;
@@ -43,6 +44,7 @@ export class MagicWordsScene implements ManagedScene {
   private dialogues: DialogueItem[] = [];
   private currentDialogueIndex = -1;
   private activeSpeaker: SpeakerName | null = null;
+  private removeDialogueProgressLogger: (() => void) | null = null;
 
   constructor(app: Application) {
     this.app = app;
@@ -122,6 +124,7 @@ export class MagicWordsScene implements ManagedScene {
     await preloadMagicWordsCache();
     await this.applyTextures();
     this.dialogues = await getMagicWordsDialogue();
+    this.setupDialogueProgressLogger();
     this.hideAllDialogues();
     this.skeletonLayer.visible = false;
     this.nextButton.visible = true;
@@ -186,11 +189,28 @@ export class MagicWordsScene implements ManagedScene {
 
   destroy = (): void => {
     this.nextButton.off("pointertap", this.showNextDialogue);
+    this.removeDialogueProgressLogger?.();
+    this.removeDialogueProgressLogger = null;
     for (const slot of Object.values(this.slots)) {
       gsap.killTweensOf(slot.container.scale);
     }
     this.root.destroy({ children: true });
   };
+
+  private setupDialogueProgressLogger(): void {
+    if (this.removeDialogueProgressLogger) {
+      return;
+    }
+
+    this.removeDialogueProgressLogger = magicWordsEvents.on(
+      "dialogue:progress",
+      (payload) => {
+        console.log(
+          `[MagicWords] Dialogue ${payload.position}/${payload.total} | ${payload.dialogue.name}: ${payload.dialogue.text}`,
+        );
+      },
+    );
+  }
 
   private createAvatarSlot(
     containerLabel: string,
@@ -316,6 +336,14 @@ export class MagicWordsScene implements ManagedScene {
     this.hideAllDialogues();
     this.currentDialogueIndex = (this.currentDialogueIndex + 1) % this.dialogues.length;
     const dialogue = this.dialogues[this.currentDialogueIndex];
+    magicWordsEvents.emit("dialogue:progress", {
+      index: this.currentDialogueIndex,
+      position: this.currentDialogueIndex + 1,
+      total: this.dialogues.length,
+      isFirst: this.currentDialogueIndex === 0,
+      isLast: this.currentDialogueIndex === this.dialogues.length - 1,
+      dialogue,
+    });
 
     const speakerName = (dialogue.name in this.slots
       ? dialogue.name
