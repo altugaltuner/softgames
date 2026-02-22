@@ -15,7 +15,7 @@ export function renderMenuScene(
   const container = document.createElement("div");
   container.className = "menu-scene";
   container.innerHTML = `
-    <h1 class="menu-title">Games</h1>
+    <h1 class="menu-title">Softgame Mechanics</h1>
     <div class="menu-grid">
       ${games.map(renderGameCard).join("")}
     </div>
@@ -55,8 +55,8 @@ function renderGameCard(game: GameCard): string {
         <img class="menu-card__cover" src="${coverImage}" alt="${game.title} cover" loading="lazy" />
       </div>
       <div class="menu-card__body">
-        <div class="menu-card__title">${game.title}</div>
-        <div class="menu-card__description">${game.description}</div>
+        <h2 class="menu-card__title">${game.title}</h2>
+        <p class="menu-card__description">${game.description}</p>
       </div>
     </button>
   `;

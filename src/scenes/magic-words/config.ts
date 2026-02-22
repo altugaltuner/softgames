@@ -10,10 +10,11 @@ export const MagicWordsSceneConfig = {
   },
   button: {
     text: "Next Dialogue",
+    resolution: 5,
     width: 180,
     height: 48,
     radius: 12,
-    fillColor: 0x2f5bd5,
+    fillColor: 0x0005709,
     strokeColor: 0xffffff,
     strokeWidth: 1,
     emojiSize: 16,
@@ -23,8 +24,8 @@ export const MagicWordsSceneConfig = {
     textStyle: {
       fill: 0xffffff,
       fontSize: 18,
-      fontFamily: "Inter, Arial, sans-serif",
-      fontWeight: "700",
+      fontFamily: "Bungee, sans-serif",
+      fontWeight: "400",
     } as const,
   },
   avatar: {
@@ -36,8 +37,8 @@ export const MagicWordsSceneConfig = {
     nameTextStyle: {
       fill: 0xffffff,
       fontSize: 12,
-      fontFamily: "Inter, Arial, sans-serif",
-      fontWeight: "700",
+      fontFamily: "Bungee, sans-serif",
+      fontWeight: "400",
       align: "center",
     } as const,
     slots: {
@@ -78,10 +79,11 @@ export const MagicWordsSceneConfig = {
     resolution: 5,
     textStyle: {
       fill: 0x2a2a2a,
-      fontSize: 9,
-      fontFamily: "Inter, Arial, sans-serif",
+      fontSize: 8,
+      fontFamily: "Aldrich, sans-serif",
+      fontWeight: "400",
       wordWrap: true,
-      wordWrapWidth: 100,
+      wordWrapWidth: 105,
     } as const,
     fallbackSpeaker: "Leonard",
   },

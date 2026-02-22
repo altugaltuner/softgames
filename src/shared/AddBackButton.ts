@@ -2,6 +2,7 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import type { BackButtonOptions } from "../types/App";
 
 class BackButtonHud {
+
   private readonly app: Application;
   private readonly options: BackButtonOptions;
   private readonly container: Container;
@@ -26,8 +27,8 @@ class BackButtonHud {
       style: {
         fill: 0xffffff,
         fontSize: 18,
-        fontWeight: "700",
-        fontFamily: "Inter, system-ui, sans-serif",
+        fontFamily: "Bungee, sans-serif",
+        fontWeight: "400",
       },
     });
     this.label.position.set(22, 38);
@@ -49,7 +50,6 @@ class BackButtonHud {
     this.options.onClick();
   };
 }
-
 
 export function addBackButton(
   app: Application,

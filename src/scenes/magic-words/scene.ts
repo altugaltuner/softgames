@@ -1,4 +1,12 @@
-import { Application, Container, Graphics, Sprite, Text, Texture } from "pixi.js";
+import {
+  Application,
+  BlurFilter,
+  Container,
+  Graphics,
+  Sprite,
+  Text,
+  Texture,
+} from "pixi.js";
 import { gsap } from "gsap";
 import type { ManagedScene, ResizePayload } from "../../types/App";
 import type { AvatarSlot, DialogueItem } from "./type";
@@ -12,6 +20,9 @@ import {
 } from "./cache";
 import { renderInlineDialog } from "./dialog-renderer";
 
+const SKELETON_COLOR = 0x696969;
+const SKELETON_ALPHA = 0.6;
+
 type SpeakerName = keyof typeof MagicWordsSceneConfig.avatar.slots;
 
 export class MagicWordsScene implements ManagedScene {
@@ -23,7 +34,12 @@ export class MagicWordsScene implements ManagedScene {
   private readonly nextButtonText = new Text({
     text: MagicWordsSceneConfig.button.text,
     style: MagicWordsSceneConfig.button.textStyle,
+    resolution: MagicWordsSceneConfig.button.resolution,
   });
+  private readonly skeletonLayer = new Container();
+  private readonly skeletonAvatars: Graphics[] = [];
+  private readonly skeletonButton = new Graphics();
+  private isLoaded = false;
   private dialogues: DialogueItem[] = [];
   private currentDialogueIndex = -1;
   private activeSpeaker: SpeakerName | null = null;
@@ -53,24 +69,78 @@ export class MagicWordsScene implements ManagedScene {
       ),
     };
 
+    this.setupSkeletonLayer();
+    this.root.addChild(this.skeletonLayer);
     this.root.addChild(
       this.slots.Sheldon.container,
       this.slots.Penny.container,
       this.slots.Leonard.container,
       this.nextButton,
     );
+    this.nextButton.visible = false;
+    for (const slot of Object.values(this.slots)) {
+      slot.container.visible = false;
+    }
     this.app.stage.addChild(this.root);
 
     this.setupNextButton();
   }
 
+  private getAvatarSlotCount(): number {
+    return Object.keys(MagicWordsSceneConfig.avatar.slots).length;
+  }
+
+  private setupSkeletonLayer(): void {
+    this.skeletonLayer.label = "SkeletonLayer";
+    this.skeletonLayer.filters = [
+      new BlurFilter({ strength: 2, quality: 10 }),
+    ];
+    const count = this.getAvatarSlotCount();
+    for (let i = 0; i < count; i++) {
+      const g = new Graphics();
+      this.skeletonAvatars.push(g);
+      this.skeletonLayer.addChild(g);
+    }
+    this.skeletonButton
+      .roundRect(
+        0,
+        0,
+        MagicWordsSceneConfig.button.width,
+        MagicWordsSceneConfig.button.height,
+        MagicWordsSceneConfig.button.radius,
+      )
+      .fill({ color: SKELETON_COLOR, alpha: SKELETON_ALPHA });
+    this.skeletonButton.pivot.set(
+      MagicWordsSceneConfig.button.width * 0.5,
+      MagicWordsSceneConfig.button.height * 0.5,
+    );
+    this.skeletonLayer.addChild(this.skeletonButton);
+  }
+
   init = async (): Promise<ManagedScene> => {
+    this.fireResize();
     await preloadMagicWordsCache();
     await this.applyTextures();
     this.dialogues = await getMagicWordsDialogue();
     this.hideAllDialogues();
+    this.skeletonLayer.visible = false;
+    this.nextButton.visible = true;
+    for (const slot of Object.values(this.slots)) {
+      slot.container.visible = true;
+    }
+    this.isLoaded = true;
     return this;
   };
+
+  private fireResize(): void {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const scale = Math.min(
+      width / 640,
+      height / 360,
+    );
+    this.resize({ width, height, scale });
+  }
 
   resize = ({ width, height }: ResizePayload): void => {
     const avatarSize = Math.max(
@@ -80,14 +150,35 @@ export class MagicWordsScene implements ManagedScene {
 
     const orientation = width >= height ? "landscape" : "portrait";
 
-    for (const [name, slot] of Object.entries(this.slots)) {
-      const cfg = MagicWordsSceneConfig.avatar.slots[name as SpeakerName];
+    const slotNames = Object.keys(
+      MagicWordsSceneConfig.avatar.slots,
+    ) as SpeakerName[];
+    for (let i = 0; i < slotNames.length; i++) {
+      const name = slotNames[i];
+      const slot = this.slots[name];
+      const cfg = MagicWordsSceneConfig.avatar.slots[name];
       const pos = cfg[orientation];
-      this.positionSlot(slot, width * pos.xRatio, height * pos.yRatio, avatarSize);
+      const x = width * pos.xRatio;
+      const y = height * pos.yRatio;
+      this.positionSlot(slot, x, y, avatarSize);
+      const skeleton = this.skeletonAvatars[i];
+      if (skeleton) {
+        skeleton.clear();
+        skeleton
+          .roundRect(-avatarSize * 0.5, -avatarSize * 0.5, avatarSize, avatarSize, 8)
+          .fill({ color: SKELETON_COLOR, alpha: SKELETON_ALPHA });
+        skeleton.position.set(x, y);
+      }
     }
-    this.applyFocusScale(false);
+    if (this.isLoaded) {
+      this.applyFocusScale(false);
+    }
 
     this.nextButton.position.set(
+      width * 0.5,
+      height - MagicWordsSceneConfig.button.bottomOffset,
+    );
+    this.skeletonButton.position.set(
       width * 0.5,
       height - MagicWordsSceneConfig.button.bottomOffset,
     );

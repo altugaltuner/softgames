@@ -1,6 +1,7 @@
 import { Application, Container, Text } from "pixi.js";
 
 class FpsHud {
+
   private readonly app: Application;
   private readonly container: Container;
   private readonly text: Text;
@@ -14,9 +15,9 @@ class FpsHud {
       text: "FPS: 0",
       style: {
         fill: 0xffffff,
-        fontSize: 14,
-        fontWeight: "600",
-        fontFamily: "Inter, system-ui, sans-serif",
+        fontSize: 18,
+        fontFamily: "Bungee, sans-serif",
+        fontWeight: "400",
       },
     });
     this.text.position.set(12, 8);
