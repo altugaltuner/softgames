@@ -106,6 +106,8 @@ export class MagicWordsScene implements ManagedScene {
   ): AvatarSlot {
     const container = new Container();
     container.label = containerLabel;
+    const dialogueContainer = new Container();
+    dialogueContainer.label = `${avatarLabel}DialogueContainer`;
 
     const bubble = new Sprite(Texture.WHITE);
     bubble.label = `${avatarLabel}Bubble`;
@@ -115,16 +117,20 @@ export class MagicWordsScene implements ManagedScene {
     const avatar = new Sprite(Texture.WHITE);
     avatar.label = avatarLabel;
     avatar.anchor.set(0.5);
+    avatar.width = MagicWordsSceneConfig.avatar.minSize;
+    avatar.height = MagicWordsSceneConfig.avatar.minSize;
     avatar.visible = false;
 
     const dialogueText = new Text({
       text: "",
       style: MagicWordsSceneConfig.dialogue.textStyle,
+      resolution: MagicWordsSceneConfig.dialogue.resolution,
     });
     dialogueText.anchor.set(0.5);
     dialogueText.visible = false;
 
-    container.addChild(bubble, dialogueText, avatar);
+    dialogueContainer.addChild(bubble, dialogueText);
+    container.addChild(dialogueContainer, avatar);
     return { container, bubble, avatar, dialogueText, side };
   }
 
@@ -164,8 +170,8 @@ export class MagicWordsScene implements ManagedScene {
 
   private positionSlot(slot: AvatarSlot, x: number, y: number, avatarSize: number): void {
     slot.container.position.set(x, y);
-    slot.avatar.width = avatarSize;
-    slot.avatar.height = avatarSize;
+    const slotScale = avatarSize / MagicWordsSceneConfig.avatar.minSize;
+    slot.container.scale.set(slotScale);
 
     if (slot.side === "left") {
       slot.bubble.position.set(
