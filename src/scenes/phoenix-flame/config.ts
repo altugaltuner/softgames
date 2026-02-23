@@ -18,20 +18,10 @@ export const FlameConfig = {
     overscanMultiplier: 3,
   },
 
-  // Sabit flame sprite ayarlari.
-  staticFlame: {
-    // Sprite merkez anchor.
-    anchor: 0.5,
-    // Sabit flame saydamligi.
-    alpha: 0.95,
-    // Sabit flame olcegi.
-    scale: 1.95,
-    // Additive blend ile parlama etkisi.
-    blendMode: "add",
-    // Ekranin sagindan iceri ofset.
-    offsetRight: 200,
-    // Dikey konum orani.
-    yRatio: 0.5,
+  // Torch ve emitter'in birlikte tasinmasi icin ortak konum offset'i.
+  placement: {
+    // Negatif deger yukari, pozitif deger asagi tasir.
+    yOffset: -100,
   },
 
   // Particle emit merkezi ve spawn dagilimi.

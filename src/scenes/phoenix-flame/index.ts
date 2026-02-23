@@ -1,13 +1,29 @@
-import { Application, Container, Graphics, Sprite } from "pixi.js";
+import { Application, Assets, Container, Sprite, Texture } from "pixi.js";
+import { sound } from "@pixi/sound";
 import { createFireCircle } from "./fire";
 import { FlameConfig } from "./config";
 import type { ManagedScene } from "../../types/App";
 
+const fireBackgroundPath = "/assets/ui/fire-bg.webp";
+const torchPath = "/assets/textures/torch.png";
+const fireSoundPath = "/assets/sounds/fire-sound.mp3";
+const fireSoundAlias = "phoenixFlameFireSound";
+
 export function createPhoenixFlameScene(app: Application): ManagedScene {
   // Sahne kok konteyneri.
   const container = new Container();
-  // Tam ekran arka plan.
-  const background = new Graphics();
+  // Tam ekran image background (oran korunarak cover olur).
+  const background = new Sprite(Texture.WHITE);
+  background.anchor.set(0.5);
+  background.alpha = 0;
+  background.label = "fireBackground";
+  const torch = new Sprite(Texture.WHITE);
+  torch.anchor.set(0.5);
+  torch.alpha = 0;
+  torch.label = "torch";
+  let viewportWidth = app.screen.width;
+  let viewportHeight = app.screen.height;
+  let ownsFireSoundAlias = false;
   // Animasyonlu parcaciklar icin ayrik layer.
   const particleLayer = new Container();
   // Ekranda ayni anda gorunecek max parcacik sayisi.
@@ -20,13 +36,6 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
   );
   const particleTexture = template.texture;
   template.destroy();
-
-  // Sag tarafta sabit duracak, animasyona girmeyecek tek flame sprite.
-  const staticFlame = new Sprite(particleTexture);
-  staticFlame.anchor.set(FlameConfig.staticFlame.anchor);
-  staticFlame.alpha = FlameConfig.staticFlame.alpha;
-  staticFlame.scale.set(FlameConfig.staticFlame.scale);
-  staticFlame.blendMode = FlameConfig.staticFlame.blendMode;
 
   // Her parcacik icin runtime state.
   type Particle = {
@@ -85,25 +94,44 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     }
   };
 
-  // Cizim sirasi: background -> sabit flame -> animasyonlu particles.
-  container.addChild(background, staticFlame, particleLayer);
+  // Cizim sirasi: background -> torch -> animasyonlu particles.
+  container.addChild(background, torch, particleLayer);
   app.stage.addChild(container);
   app.ticker.add(update);
+  if (!sound.exists(fireSoundAlias)) {
+    sound.add(fireSoundAlias, fireSoundPath);
+    ownsFireSoundAlias = true;
+  }
+  sound.play(fireSoundAlias, { loop: true, volume: 0.5 });
+  Assets.load<Texture>(fireBackgroundPath)
+    .then((texture) => {
+      background.texture = texture;
+      background.alpha = 1;
+      layoutBackground(viewportWidth, viewportHeight);
+    })
+    .catch(() => {
+      // Asset yuklenemezse sahne calismaya devam etsin.
+      background.alpha = 0;
+    });
+  Assets.load<Texture>(torchPath)
+    .then((texture) => {
+      torch.texture = texture;
+      torch.alpha = 1;
+      layoutTorch(viewportWidth, viewportHeight);
+    })
+    .catch(() => {
+      // Asset yuklenemezse sahne calismaya devam etsin.
+      torch.alpha = 0;
+    });
 
   return {
     resize: ({ width, height }) => {
-      // Rotate/resize'da bosluk gorunmemesi icin buyuk rect.
-      const size =
-        Math.max(width, height) * FlameConfig.background.overscanMultiplier;
-      background.clear();
-      background
-        .fill({ color: FlameConfig.background.color })
-        .rect(
-          -size,
-          -size,
-          size * FlameConfig.background.overscanMultiplier,
-          size * FlameConfig.background.overscanMultiplier,
-        );
+      viewportWidth = width;
+      viewportHeight = height;
+      // Arka plani orani koruyarak tum ekrani kaplayacak sekilde olcekle.
+      layoutBackground(width, height);
+      // Torch sprite'ini merkeze oran koruyarak yerlestir.
+      layoutTorch(width, height);
 
       // Particle emit merkezi (ekranin orta-alt bolgesi).
       centerX = width * FlameConfig.emitter.xRatio;
@@ -112,17 +140,18 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
         Math.min(
           FlameConfig.emitter.yOffsetMax,
           height * FlameConfig.emitter.yOffsetHeightRatio,
-        );
+        ) +
+        FlameConfig.placement.yOffset;
 
-      // Sabit flame: ekranin saginda, animasyonsuz durur.
-      staticFlame.position.set(
-        width - FlameConfig.staticFlame.offsetRight,
-        height * FlameConfig.staticFlame.yRatio,
-      );
     },
     destroy: () => {
       // Ticker listener temizle.
       app.ticker.remove(update);
+      // Sahne kapanirken sesi durdur.
+      sound.stop(fireSoundAlias);
+      if (ownsFireSoundAlias && sound.exists(fireSoundAlias)) {
+        sound.remove(fireSoundAlias);
+      }
       // Tum display objelerini temizle.
       container.destroy({ children: true });
       // Paylasilan texture'i release et.
@@ -199,5 +228,21 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
       (1 - (t - FlameConfig.fade.peakUntilRatio) /
         (1 - FlameConfig.fade.peakUntilRatio))
     );
+  }
+
+  function layoutBackground(width: number, height: number): void {
+    const textureWidth = background.texture.width || 1;
+    const textureHeight = background.texture.height || 1;
+    const coverScale = Math.max(width / textureWidth, height / textureHeight);
+    background.position.set(width / 2, height / 2);
+    background.scale.set(coverScale);
+  }
+
+  function layoutTorch(width: number, height: number): void {
+    const textureWidth = torch.texture.width || 1;
+    const textureHeight = torch.texture.height || 1;
+    const containScale = Math.min(width / textureWidth, height / textureHeight);
+    torch.position.set(width / 2, height / 1.4 + FlameConfig.placement.yOffset);
+    torch.scale.set(containScale / 2);
   }
 }

@@ -11,7 +11,7 @@ export const AceOfShadowsConfig = {
   startXRatio: 7 / 10,
   endXRatio: 3 / 10,
   centerYRatio: 1 / 2,
-  arcLiftY: 50,
+  arcLiftY: 75,
   easing: {
     midpoint: 0.5,
     initialMultiplier: 4,
