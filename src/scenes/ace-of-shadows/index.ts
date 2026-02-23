@@ -1,30 +1,35 @@
 import { Application, Assets, Container, Graphics, Sprite, Texture, } from "pixi.js";
 import cardsData from "../../data/cards.json";
 import { AceOfShadowsConfig } from "./config";
-import { createSequentialCardLauncher } from "./tween-system/Tween";
+import { createLauncher } from "./tween-system/Tween";
 import type { AceOfShadowsScene } from "./types";
 import type { ResizePayload } from "../../types/App";
 
 const cards = cardsData as string[];
 const woodenBackgroundPath = "/assets/ui/wooden-bg.webp";
+const cardContainerPath = "/assets/ui/card-container.png";
 
 class AceOfShadowsSceneImpl implements AceOfShadowsScene {
   readonly container = new Container();
   private readonly app: Application;
   private readonly backgroundContainer = new Container();
+  private readonly deckContainer = new Container();
   private readonly cardContainer = new Container();
   private readonly background = new Graphics();
   private backgroundSprite: Sprite | null = null;
   private backgroundTexture: Texture | null = null;
-  private cardLauncher: ReturnType<typeof createSequentialCardLauncher> | null =
+  private cardFrameSprite: Sprite | null = null;
+  private cardFrameTexture: Texture | null = null;
+  private cardLauncher: ReturnType<typeof createLauncher> | null =
     null;
 
   constructor(app: Application) {
     this.app = app;
     this.container.sortableChildren = true;
-    this.container.addChild(this.backgroundContainer, this.cardContainer);
+    this.container.addChild(this.backgroundContainer, this.deckContainer);
     this.container.label = "AceOfShadowsScene";
     this.backgroundContainer.label = "backgroundContainer";
+    this.deckContainer.label = "deckContainer";
     this.cardContainer.label = "cardContainer";
     this.backgroundContainer.addChild(this.background);
   }
@@ -35,12 +40,18 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
     this.backgroundSprite = new Sprite(this.backgroundTexture);
     this.backgroundSprite.label = "woodenBackground";
     this.backgroundContainer.addChildAt(this.backgroundSprite, 0);
+    this.cardFrameTexture = await Assets.load<Texture>(cardContainerPath);
+    this.cardFrameSprite = new Sprite(this.cardFrameTexture);
+    this.cardFrameSprite.anchor.set(0.5);
+    this.cardFrameSprite.label = "cardFrame";
+    this.cardFrameSprite.scale.set(1);
+    this.deckContainer.addChild(this.cardFrameSprite, this.cardContainer);
 
     const sprites = await this.createCardSprites(cards);
     this.addCardsToContainer(sprites);
     this.app.stage.addChild(this.container);
 
-    this.cardLauncher = createSequentialCardLauncher(this.cardContainer, sprites, {
+    this.cardLauncher = createLauncher(this.cardContainer, sprites, {
       durationMs: AceOfShadowsConfig.tweenDurationMs,
       launchIntervalMs: AceOfShadowsConfig.launchIntervalMs,
       responsiveScaleBreakpointWidth:
@@ -52,6 +63,7 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
       startXRatio: AceOfShadowsConfig.startXRatio,
       endXRatio: AceOfShadowsConfig.endXRatio,
       centerYRatio: AceOfShadowsConfig.centerYRatio,
+      arcLiftY: AceOfShadowsConfig.arcLiftY,
       scale: AceOfShadowsConfig.cardScale,
     });
     return this;
@@ -68,11 +80,16 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
       this.backgroundSprite.position.set(width / 2, height / 2);
       this.backgroundSprite.scale.set(scale);
     }
-    this.cardLauncher?.updatePosAndScale(width, height);
+    this.deckContainer.position.set(width / 2, height / 2);
+    const deckW = this.cardFrameTexture?.width ?? AceOfShadowsConfig.designWidth;
+    const deckH = this.cardFrameTexture?.height ?? AceOfShadowsConfig.designHeight;
+    const fit = Math.min(width / deckW, height / deckH);
+    this.deckContainer.scale.set(fit);
+    this.cardLauncher?.update(deckW, deckH);
   };
 
   destroy = (): void => {
-    this.cardLauncher?.cancel();
+    this.cardLauncher?.stop();
     this.container.destroy({ children: true });
   };
 

@@ -1,96 +1,21 @@
 import { Container, Sprite, Ticker } from "pixi.js";
 import { easeInOutCubic } from "./easing";
-import type {
-  SequentialFlightConfig,
-  TweenConfig,
-  TweenHandle,
-} from "./types";
+import type { SequentialFlightConfig } from "./types";
 
-class Tween {
-  private readonly container: Container;
-  private readonly config: TweenConfig;
-  private progress = 0;
-  private tweenDone = false;
-  private tweenCancel: (() => void) | null = null;
-  private lastWidth = 0;
-  private lastHeight = 0;
-
-  constructor(container: Container, config: TweenConfig) {
-    this.container = container;
-    this.config = config;
-  }
-
-  updateFirstFlight = (width: number, height: number): void => {
-    this.lastWidth = width;
-    this.lastHeight = height;
-    this.container.scale.set(this.config.scale);
-
-    if (this.tweenDone) {
-      this.applyPosition(width, height, 1);
-      return;
-    }
-
-    if (this.tweenCancel) {
-      this.applyPosition(width, height, this.progress);
-      return;
-    }
-
-    this.tweenCancel = tweenPosition(
-      this.container,
-      { x: this.getStartX(width), y: this.getCenterY(height) },
-      { x: this.getEndX(width), y: this.getCenterY(height) },
-      this.config.durationMs,
-      (t) => {
-        this.progress = t;
-        this.applyPosition(this.lastWidth, this.lastHeight, t);
-      },
-      () => {
-        this.tweenDone = true;
-        this.progress = 1;
-        this.tweenCancel = null;
-      },
-    ).cancel;
-  };
-
-  cancel = (): void => {
-    this.tweenCancel?.();
-    this.tweenCancel = null;
-  };
-
-  private getStartX(w: number): number {
-    return w * this.config.startXRatio;
-  }
-
-  private getEndX(w: number): number {
-    return w * this.config.endXRatio;
-  }
-
-  private getCenterY(h: number): number {
-    return h * this.config.centerYRatio;
-  }
-
-  private applyPosition(w: number, h: number, t: number): void {
-    const startX = this.getStartX(w);
-    const endX = this.getEndX(w);
-    const centerY = this.getCenterY(h);
-    this.container.position.set(startX + (endX - startX) * t, centerY);
-  }
-}
-
-class SequentialCardLauncher {
-  private readonly cardContainer: Container;
-  private readonly sprites: Sprite[];
-  private readonly config: SequentialFlightConfig;
+class SeqLauncher {
+  private readonly cardsCt: Container;
+  private readonly cards: Sprite[];
+  private readonly cfg: SequentialFlightConfig;
   private readonly ticker = Ticker.shared;
-  private started = false;
-  private intervalId: number | null = null;
-  private currentTravelX = 0;
-  private currentCenterY = 0;
-  private tickerActive = false;
-  private readonly pending: Sprite[];
-  private readonly landedSlots = new Map<Sprite, number>();
-  private launchedCount = 0;
-  private readonly activeFlights = new Map<
+  private isStarted = false;
+  private launchTimerId: number | null = null;
+  private travelX = 0;
+  private centerY = 0;
+  private isTicking = false;
+  private readonly queue: Sprite[];
+  private readonly landedYBySprite = new Map<Sprite, number>();
+  private launchIdx = 0;
+  private readonly flights = new Map<
     Sprite,
     {
       fromX: number;
@@ -106,146 +31,100 @@ class SequentialCardLauncher {
     sprites: Sprite[],
     config: SequentialFlightConfig,
   ) {
-    this.cardContainer = cardContainer;
-    this.sprites = sprites;
-    this.config = config;
-    this.pending = [...this.sprites].reverse();
+    this.cardsCt = cardContainer;
+    this.cards = sprites;
+    this.cfg = config;
+    this.queue = [...this.cards].reverse();
   }
 
-  updatePosAndScale = (width: number, height: number): void => {
-    const widthRatio = width / this.config.responsiveScaleBreakpointWidth;
-    const heightRatio = height / this.config.responsiveScaleBreakpointHeight;
-    const responsiveScale = this.config.scale * Math.min(1, widthRatio, heightRatio);
-    this.cardContainer.scale.set(responsiveScale);
-    const startX = width * this.config.startXRatio;
-    const endX = width * this.config.endXRatio;
-    this.currentCenterY = height * this.config.centerYRatio;
-    this.currentTravelX = (endX - startX) / responsiveScale;
-    this.cardContainer.position.set(startX, this.currentCenterY);
+  update = (width: number, height: number): void => {
+    const wRatio = width / this.cfg.responsiveScaleBreakpointWidth;
+    const hRatio = height / this.cfg.responsiveScaleBreakpointHeight;
+    const scale = this.cfg.scale * Math.min(1, wRatio, hRatio);
+    this.cardsCt.scale.set(scale);
+    // deckContainer merkezde olduğu için koordinatları merkez tabanlı hesapla
+    const startX = width * this.cfg.startXRatio - width / 2;
+    const endX = width * this.cfg.endXRatio - width / 2;
+    this.centerY = height * this.cfg.centerYRatio - height / 2;
+    this.travelX = (endX - startX) / scale;
+    this.cardsCt.position.set(startX, this.centerY);
 
-    for (const [sprite, targetY] of this.landedSlots) {
-      sprite.position.set(this.currentTravelX, targetY);
+    for (const [sprite, targetY] of this.landedYBySprite) {
+      sprite.position.set(this.travelX, targetY);
     }
 
-    if (!this.started) {
-      this.started = true;
-      this.launchNext();
-      this.intervalId = window.setInterval(this.launchNext, this.config.launchIntervalMs);
+    if (!this.isStarted) {
+      this.isStarted = true;
+      this.launch();
+      this.launchTimerId = window.setInterval(this.launch, this.cfg.launchIntervalMs);
     }
   };
 
-  cancel = (): void => {
-    if (this.intervalId !== null) {
-      window.clearInterval(this.intervalId);
-      this.intervalId = null;
+  stop = (): void => {
+    if (this.launchTimerId !== null) {
+      window.clearInterval(this.launchTimerId);
+      this.launchTimerId = null;
     }
-    if (this.tickerActive) {
-      this.ticker.remove(this.updateFlights);
-      this.tickerActive = false;
+    if (this.isTicking) {
+      this.ticker.remove(this.tick);
+      this.isTicking = false;
     }
-    this.activeFlights.clear();
+    this.flights.clear();
   };
 
-  private updateFlights = (): void => {
+  private tick = (): void => {
     const now = performance.now();
-    for (const [sprite, flight] of this.activeFlights.entries()) {
+    for (const [sprite, flight] of this.flights.entries()) {
       const tRaw = Math.min(1, (now - flight.startedAt) / flight.durationMs);
-      const t = easeInOutCubic(tRaw, this.config.easing);
-      sprite.position.x = flight.fromX + (this.currentTravelX - flight.fromX) * t;
-      sprite.position.y = flight.fromY + (flight.targetY - flight.fromY) * t;
+      const t = easeInOutCubic(tRaw, this.cfg.easing);
+      const arcY = Math.sin(Math.PI * tRaw) * this.cfg.arcLiftY;
+      sprite.position.x = flight.fromX + (this.travelX - flight.fromX) * t;
+      sprite.position.y = flight.fromY + (flight.targetY - flight.fromY) * t - arcY;
 
       if (tRaw >= 1) {
-        sprite.position.set(this.currentTravelX, flight.targetY);
-        this.landedSlots.set(sprite, flight.targetY);
-        this.activeFlights.delete(sprite);
+        sprite.position.set(this.travelX, flight.targetY);
+        this.landedYBySprite.set(sprite, flight.targetY);
+        this.flights.delete(sprite);
       }
     }
   };
 
-  private launchNext = (): void => {
-    const sprite = this.pending.shift();
+  private launch = (): void => {
+    const sprite = this.queue.shift();
     if (!sprite) {
-      if (this.intervalId !== null) {
-        window.clearInterval(this.intervalId);
-        this.intervalId = null;
+      if (this.launchTimerId !== null) {
+        window.clearInterval(this.launchTimerId);
+        this.launchTimerId = null;
       }
       return;
     }
 
-    this.cardContainer.setChildIndex(sprite, this.cardContainer.children.length - 1);
-    const targetY = this.config.landedStackOffsetY * this.launchedCount;
-    this.launchedCount += 1;
-    this.activeFlights.set(sprite, {
+    this.cardsCt.setChildIndex(sprite, this.cardsCt.children.length - 1);
+    const targetY = this.cfg.landedStackOffsetY * this.launchIdx;
+    this.launchIdx += 1;
+    this.flights.set(sprite, {
       fromX: sprite.position.x,
       fromY: sprite.position.y,
       targetY,
       startedAt: performance.now(),
-      durationMs: this.config.durationMs,
+      durationMs: this.cfg.durationMs,
     });
 
-    if (!this.tickerActive) {
-      this.ticker.add(this.updateFlights);
-      this.tickerActive = true;
+    if (!this.isTicking) {
+      this.ticker.add(this.tick);
+      this.isTicking = true;
     }
   };
 }
 
-export function tweenPosition(
-  target: { position: { x: number; y: number } },
-  from: { x: number; y: number },
-  to: { x: number; y: number },
-  durationMs: number,
-  onProgress?: (t: number) => void,
-  onComplete?: () => void,
-): TweenHandle {
-  const ticker = Ticker.shared;
-  const start = performance.now();
-
-  target.position.x = from.x;
-  target.position.y = from.y;
-
-  const update = () => {
-    const now = performance.now();
-    const t = Math.min(1, (now - start) / durationMs);
-    target.position.x = from.x + (to.x - from.x) * t;
-    target.position.y = from.y + (to.y - from.y) * t;
-    onProgress?.(t);
-
-    if (t >= 1) {
-      ticker.remove(update);
-      onComplete?.();
-    }
-  };
-
-  ticker.add(update);
-
-  return {
-    cancel: () => {
-      ticker.remove(update);
-    },
-  };
-}
-
-export function createTween(
-  container: Container,
-  config: TweenConfig,
-): { updateFirstFlight: (width: number, height: number) => void; cancel: () => void } {
-  const mover = new Tween(container, config);
-  return {
-    updateFirstFlight: mover.updateFirstFlight,
-    cancel: mover.cancel,
-  };
-}
-
-export function createSequentialCardLauncher(
+export function createLauncher(
   cardContainer: Container,
   sprites: Sprite[],
   config: SequentialFlightConfig,
-): { updatePosAndScale: (width: number, height: number) => void; cancel: () => void } {
-  const launcher = new SequentialCardLauncher(cardContainer, sprites, config);
+): { update: (width: number, height: number) => void; stop: () => void } {
+  const launcher = new SeqLauncher(cardContainer, sprites, config);
   return {
-    updatePosAndScale: launcher.updatePosAndScale,
-    cancel: launcher.cancel,
+    update: launcher.update,
+    stop: launcher.stop,
   };
 }
-

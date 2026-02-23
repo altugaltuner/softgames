@@ -19,10 +19,6 @@ export type SequentialFlightConfig = TweenConfig & {
   responsiveScaleBreakpointWidth: number;
   responsiveScaleBreakpointHeight: number;
   landedStackOffsetY: number;
+  arcLiftY: number;
   easing: EaseInOutCubicConfig;
 };
-
-export type TweenHandle = {
-  cancel: () => void;
-};
-
