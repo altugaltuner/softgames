@@ -18,16 +18,18 @@ export function preloadMagicWordsCache(): Promise<void> {
 
   preloadPromise = (async () => {
     const data = await getMagicWordsData();
-    const avatarUrls = (data.avatars ?? []).map((avatar) => avatar.url);
+    const avatarUrls = (data.avatars ?? []).map((avatar) =>
+      normalizeAssetUrl(avatar.url),
+    );
     const emojis = data.emojis ?? data.emojies ?? [];
-    const emojiUrls = emojis.map((emoji) => emoji.url);
+    const emojiUrls = emojis.map((emoji) => normalizeAssetUrl(emoji.url));
     const urls = [BUBBLE_PATH, ...avatarUrls, ...emojiUrls];
 
     for (const avatar of data.avatars ?? []) {
-      avatarUrlByName.set(avatar.name, avatar.url);
+      avatarUrlByName.set(avatar.name, normalizeAssetUrl(avatar.url));
     }
     for (const emoji of emojis) {
-      emojiUrlByName.set(emoji.name, emoji.url);
+      emojiUrlByName.set(emoji.name, normalizeAssetUrl(emoji.url));
     }
 
     await Promise.all(urls.map((url) => ensureTextureCached(url)));
@@ -82,22 +84,40 @@ async function getMagicWordsData(): Promise<MagicWordsApiResponse> {
 }
 
 async function ensureTextureCached(url: string): Promise<Texture | null> {
-  const existing = textureByUrl.get(url);
+  const normalizedUrl = normalizeAssetUrl(url);
+  const existing = textureByUrl.get(normalizedUrl);
   if (existing) {
     return existing;
   }
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(normalizedUrl);
     if (!response.ok) {
       return null;
     }
     const blob = await response.blob();
     const bitmap = await createImageBitmap(blob);
     const texture = Texture.from(bitmap);
-    textureByUrl.set(url, texture);
+    textureByUrl.set(normalizedUrl, texture);
     return texture;
   } catch {
     return null;
+  }
+}
+
+function normalizeAssetUrl(url: string): string {
+  try {
+    const parsedUrl = new URL(url);
+    if (
+      parsedUrl.protocol === "https:" &&
+      parsedUrl.hostname === "api.dicebear.com" &&
+      parsedUrl.port === "81"
+    ) {
+      parsedUrl.port = "";
+      return parsedUrl.toString();
+    }
+    return parsedUrl.toString();
+  } catch {
+    return url;
   }
 }

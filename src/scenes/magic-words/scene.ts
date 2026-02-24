@@ -19,12 +19,13 @@ import {
   preloadMagicWordsCache,
 } from "./cache";
 import { renderInlineDialog } from "./dialog-renderer";
+import { MagicWordsDialogueAudio } from "./dialogue-audio";
 import { magicWordsEvents } from "./events";
 import { MagicWordsLoadingSkeleton } from "./loading-skeleton";
-
-type SpeakerName = keyof typeof MagicWordsSceneConfig.avatar.slots;
+import type { SpeakerName } from "./type";
 
 export class MagicWordsScene implements ManagedScene {
+
   private readonly app: Application;
   private readonly root = new Container();
   private readonly backgroundLayer = new Container();
@@ -32,18 +33,22 @@ export class MagicWordsScene implements ManagedScene {
   private readonly backgroundPattern = new Sprite(Texture.EMPTY);
   private readonly slots: Record<SpeakerName, AvatarSlot>;
   private readonly controlsContainer = new Container();
+
   private readonly headerText = new Text({
     text: MagicWordsSceneConfig.header.text,
     style: MagicWordsSceneConfig.header.textStyle,
     resolution: MagicWordsSceneConfig.header.resolution,
   });
+
   private readonly nextButton = new Container();
   private readonly nextButtonBg = new Graphics();
+
   private readonly nextButtonText = new Text({
     text: MagicWordsSceneConfig.button.text,
     style: MagicWordsSceneConfig.button.textStyle,
     resolution: MagicWordsSceneConfig.button.resolution,
   });
+
   private readonly playPauseButton = new Container();
   private readonly playPauseButtonBg = new Graphics();
   private readonly playIcon = new Sprite(Texture.EMPTY);
@@ -56,6 +61,7 @@ export class MagicWordsScene implements ManagedScene {
   private dialogues: DialogueItem[] = [];
   private currentDialogueIndex = -1;
   private activeSpeaker: SpeakerName | null = null;
+  private readonly dialogueAudio = new MagicWordsDialogueAudio();
   private removeDialogueProgressLogger: (() => void) | null = null;
 
   constructor(app: Application) {
@@ -115,6 +121,7 @@ export class MagicWordsScene implements ManagedScene {
     await this.loadControlIcons();
     await this.applyTextures();
     this.dialogues = await getMagicWordsDialogue();
+    this.dialogueAudio.setup(this.dialogues);
     this.setupDialogueProgressLogger();
     this.hideAllDialogues();
     this.loadingSkeleton.setVisible(false);
@@ -200,6 +207,7 @@ export class MagicWordsScene implements ManagedScene {
     this.nextButton.off("pointertap", this.onNextButtonTap);
     this.playPauseButton.off("pointertap", this.togglePlayPause);
     this.stopAutoPlay();
+    this.dialogueAudio.destroy();
     this.removeDialogueProgressLogger?.();
     this.removeDialogueProgressLogger = null;
     for (const slot of Object.values(this.slots)) {
@@ -549,6 +557,7 @@ export class MagicWordsScene implements ManagedScene {
       return;
     }
 
+    this.dialogueAudio.stopActive();
     this.hideAllDialogues();
     this.currentDialogueIndex = (this.currentDialogueIndex + 1) % this.dialogues.length;
     const dialogue = this.dialogues[this.currentDialogueIndex];
@@ -578,6 +587,7 @@ export class MagicWordsScene implements ManagedScene {
     slot.dialogueContent.addChild(inlineContent);
     slot.dialogueContent.visible = true;
     this.animateDialogueIn(slot);
+    this.dialogueAudio.play(this.currentDialogueIndex);
   };
 
   private resetDialogueTransform(slot: AvatarSlot): void {

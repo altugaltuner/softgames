@@ -1,4 +1,5 @@
 import type { Container, Sprite, Text, TextStyle, Texture } from "pixi.js";
+import type { MagicWordsSceneConfig } from "./config";
 
 export type AvatarItem = {
   name: string;
@@ -49,3 +50,5 @@ export type AvatarSlot = {
   baseScale: number;
   side: "left" | "right";
 };
+
+export type SpeakerName = keyof typeof MagicWordsSceneConfig.avatar.slots;
