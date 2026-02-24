@@ -9,6 +9,7 @@ export class DialogueAudio {
 
   setup(dialogues: DialogueItem[]): void {
     this.clearAll();
+    // Track per-speaker order so each line maps to sheldon_1, sheldon_2, etc.
     const speakerCounts = new Map<string, number>();
 
     for (let i = 0; i < dialogues.length; i += 1) {
@@ -39,6 +40,7 @@ export class DialogueAudio {
     }
 
     try {
+      // Stop then replay to keep behavior deterministic on repeated taps.
       sound.stop(alias);
       sound.play(alias, {
         complete: () => {
@@ -71,6 +73,7 @@ export class DialogueAudio {
   }
 
   private clearAll(): void {
+    // Remove only aliases created by this controller to avoid touching shared sounds.
     for (const alias of this.ownedDialogueSoundAliases) {
       if (!sound.exists(alias)) {
         continue;
@@ -94,6 +97,7 @@ export class DialogueAudio {
       return lowered;
     }
 
+    // Fallback keeps audio lookup robust when API speaker names are unexpected.
     return MagicWordsSceneConfig.dialogue.fallbackSpeaker.toLowerCase();
   }
 }

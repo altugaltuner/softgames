@@ -39,6 +39,7 @@ export class MagicWordsDialogueFlow {
     for (const slot of Object.values(this.slots)) {
       slot.bubble.visible = false;
       slot.dialogueContent.visible = false;
+      // Remove/destroy previous inline nodes to avoid stacking text/emoji containers.
       slot.dialogueContent.removeChildren().forEach((child) => child.destroy());
       this.resetDialogueTransform(slot);
     }
@@ -62,6 +63,7 @@ export class MagicWordsDialogueFlow {
       dialogue,
     });
 
+    // Unknown speaker names are mapped to the configured fallback slot.
     const speakerName = (dialogue.name in this.slots
       ? dialogue.name
       : MagicWordsSceneConfig.dialogue.fallbackSpeaker) as SpeakerName;
@@ -124,6 +126,7 @@ export class MagicWordsDialogueFlow {
   private animateDialogueIn(slot: AvatarSlot): void {
     const base = this.getDialogueBasePosition(slot.side);
     const bounds = slot.dialogueContainer.getLocalBounds();
+    // Anchor growth to the bubble tail side so pop-in feels attached to the speaking avatar.
     const pivotX = slot.side === "left" ? bounds.x : bounds.x + bounds.width;
     const pivotY = bounds.y + bounds.height;
 

@@ -24,6 +24,7 @@ export function renderInlineDialog(
 
   const root = new Container();
   const style = toNoWrapStyle(textStyle);
+  // Probe text is reused for width/spacing metrics to keep wrapping deterministic.
   const probe = new Text({ text: "Xg|", style, resolution });
   const rowH = lineHeight ?? Math.max(probe.height, emojiSize);
   const spaceW = measure(probe, "x x") - measure(probe, "xx");
@@ -47,6 +48,7 @@ export function renderInlineDialog(
       s.height = emojiSize;
       s.position.set(cx, centerY(emojiSize));
       s.roundPixels = true;
+      // Mask keeps emoji corners visually consistent with the dialogue style.
       const mask = new Graphics()
         .roundRect(0, 0, emojiSize, emojiSize, emojiSize * MagicWordsSceneConfig.button.emojiCornerRadiusRatio)
         .fill(0xffffff);
@@ -76,6 +78,7 @@ export function renderInlineDialog(
       const w = measure(probe, candidate);
       const x0 = cx > 0 && !buf.length ? cx + spaceW : cx;
 
+      // Wrap only when current buffered chunk would overflow.
       if (x0 + w > maxWidth && buf.length) { flush(); wrap(); }
       if (cx > 0 && !buf.length) cx += spaceW;
 
@@ -86,6 +89,7 @@ export function renderInlineDialog(
   }
 
   const b = root.getLocalBounds();
+  // Center pivot simplifies placing this container inside bubble content slots.
   root.pivot.set(b.x + b.width * 0.5, b.y + b.height * 0.5);
   probe.destroy();
   return root;

@@ -1,5 +1,6 @@
 export const MagicWordsSceneConfig = {
   assets: {
+    // Dialogue payload includes avatars, emojis and dialogue lines.
     endpointUrl:
       "https://private-624120-softgamesassignment.apiary-mock.com/v2/magicwords",
     bubblePath: "/assets/ui/bubble.png",
@@ -24,6 +25,7 @@ export const MagicWordsSceneConfig = {
     buttonHoverOffset: -5,
     buttonAnimDuration: 0.2,
     autoPlayIntervalMs: 3000,
+    // Used when an audio complete callback does not fire.
     autoPlayAudioSafetyTimeoutMs: 15000,
     nextButton: {
       hoverFillColor: 0x004b08,
@@ -69,6 +71,7 @@ export const MagicWordsSceneConfig = {
       align: "center",
     } as const,
     slots: {
+      // Slot coordinates are ratios so layout scales with viewport size/orientation.
       Sheldon: {
         side: "left" as const,
         landscape: { xRatio: 0.15, yRatio: 0.5 },
@@ -110,6 +113,7 @@ export const MagicWordsSceneConfig = {
       fontFamily: "Aldrich, sans-serif",
       fontWeight: "400",
       wordWrap: true,
+      // Keep text narrow enough to stay inside bubble graphics.
       wordWrapWidth: 105,
     } as const,
     fallbackSpeaker: "Leonard",

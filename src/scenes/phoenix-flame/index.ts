@@ -32,6 +32,7 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     FlameConfig.fireTemplate.radius,
     FlameConfig.fireTemplate.hotspotOffsetY,
   );
+  // Reuse one generated texture across all particles for lower memory/GPU churn.
   const particleTexture = template.texture;
   template.destroy();
 
@@ -72,6 +73,7 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     for (const p of particles) {
       p.lifeMs += dt;
       if (p.lifeMs >= p.maxLifeMs * FlameConfig.particle.resetEarlyRatio) {
+        // Recycle before full expiry to keep the flame visually continuous.
         resetParticle(p, false);
         continue;
       }
@@ -92,6 +94,7 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     ownsFireSoundAlias = true;
   }
   sound.play(fireSoundAlias, { loop: true, volume: 0.5 });
+  // Visual assets load lazily; scene still runs with graceful fallback.
   Assets.load<Texture>(fireBackgroundPath)
     .then((texture) => {
       background.texture = texture;
@@ -180,6 +183,7 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
 
   function initialPeakFade(t: number): number {
     const peak = FlameConfig.fade.peakAlpha;
+    // Quick rise + slower fall gives a natural flicker curve.
     if (t < FlameConfig.fade.peakUntilRatio) {
       return (
         FlameConfig.fade.startAlpha +

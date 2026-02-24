@@ -13,6 +13,7 @@ const emojiUrlByName = new Map<string, string>();
 
 export function preloadMagicWordsCache(): Promise<void> {
   if (preloadPromise) {
+    // Reuse a single in-flight preload to avoid duplicate network work.
     return preloadPromise;
   }
 
@@ -32,6 +33,7 @@ export function preloadMagicWordsCache(): Promise<void> {
       emojiUrlByName.set(emoji.name, normalizeAssetUrl(emoji.url));
     }
 
+    // Warm all known textures upfront so dialogue rendering stays smooth.
     await Promise.all(urls.map((url) => ensureTextureCached(url)));
   })();
 
@@ -48,6 +50,7 @@ export async function getAvatarTextureByName(name: string): Promise<Texture | nu
   if (!url) {
     return null;
   }
+  // Lazy fallback in case a specific avatar was not available during initial preload.
   return textureByUrl.get(url) ?? (await ensureTextureCached(url));
 }
 
@@ -77,6 +80,7 @@ async function getMagicWordsData(): Promise<MagicWordsApiResponse> {
     }
     apiDataCache = (await response.json()) as MagicWordsApiResponse;
   } catch {
+    // Cache empty payload on failure so repeated calls remain deterministic.
     apiDataCache = {};
   }
 
@@ -97,6 +101,7 @@ async function ensureTextureCached(url: string): Promise<Texture | null> {
     }
     const blob = await response.blob();
     const bitmap = await createImageBitmap(blob);
+    // Use Texture.from(bitmap) to keep decoded image data GPU-ready for Pixi.
     const texture = Texture.from(bitmap);
     textureByUrl.set(normalizedUrl, texture);
     return texture;
@@ -113,6 +118,7 @@ function normalizeAssetUrl(url: string): string {
       parsedUrl.hostname === "api.dicebear.com" &&
       parsedUrl.port === "81"
     ) {
+      // DiceBear URLs may include port 81; normalize to default https port for consistency.
       parsedUrl.port = "";
       return parsedUrl.toString();
     }

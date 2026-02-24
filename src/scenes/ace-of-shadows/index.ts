@@ -35,7 +35,7 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
   }
 
   async init(): Promise<AceOfShadowsScene> {
-
+    // Load static scene textures before creating card sprites.
     this.backgroundTexture = await Assets.load<Texture>(woodenBackgroundPath);
     this.backgroundSprite = new Sprite(this.backgroundTexture);
     this.backgroundSprite.label = "woodenBackground";
@@ -51,6 +51,7 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
     this.addCardsToContainer(sprites);
     this.app.stage.addChild(this.container);
 
+    // Launcher owns the sequential card flight choreography.
     this.cardLauncher = createLauncher(this.cardContainer, sprites, {
       durationMs: AceOfShadowsConfig.tweenDurationMs,
       launchIntervalMs: AceOfShadowsConfig.launchIntervalMs,
@@ -83,8 +84,10 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
     this.deckContainer.position.set(width / 2, height / 2);
     const deckW = this.cardFrameTexture?.width ?? AceOfShadowsConfig.designWidth;
     const deckH = this.cardFrameTexture?.height ?? AceOfShadowsConfig.designHeight;
+    // Fit deck art into viewport while preserving aspect ratio.
     const fit = Math.min(width / deckW, height / deckH);
     this.deckContainer.scale.set(fit);
+    // Launcher works in deck-space coordinates (not raw viewport size).
     this.cardLauncher?.update(deckW, deckH);
   };
 

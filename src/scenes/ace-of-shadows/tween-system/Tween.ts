@@ -42,6 +42,7 @@ class TweenLauncher {
     const startX = width * this.cfg.startXRatio - width / 2;
     const endX = width * this.cfg.endXRatio - width / 2;
     this.centerY = height * this.cfg.centerYRatio - height / 2;
+    // Normalize travel distance into local container space after scale is applied.
     this.travelX = (endX - startX) / scale;
     this.cardsCt.position.set(startX, this.centerY);
 
@@ -73,6 +74,7 @@ class TweenLauncher {
 
   private scheduleLaunches(): void {
     const intervalSec = this.cfg.launchIntervalMs / 1000;
+    // Launch one immediately, then queue the rest on fixed delays.
     this.launch();
     for (let i = 1; i < this.queue.length + 1; i += 1) {
       const call = gsap.delayedCall(intervalSec * i, this.launch);
@@ -105,6 +107,7 @@ class TweenLauncher {
         this.updateFlightPosition(sprite, flight);
       },
       onComplete: () => {
+        // Persist final landed Y so future resizes can reposition settled cards.
         sprite.position.set(this.travelX, flight.targetY);
         this.landedYBySprite.set(sprite, flight.targetY);
         this.flights.delete(sprite);

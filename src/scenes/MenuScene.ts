@@ -10,6 +10,7 @@ const coverByTheme: Record<string, string> = {
 const coverImageElementCache = new Map<string, HTMLImageElement>();
 const coverImagePreloadPromises = new Map<string, Promise<void>>();
 
+// Warm common card covers at module load to reduce first-menu flicker.
 warmCoverCache();
 
 export function renderMenuScene(
@@ -43,6 +44,7 @@ export function renderMenuScene(
       return;
     }
     if (options.onNavigate) {
+      // SceneManager navigation keeps SPA routing behavior.
       options.onNavigate(url);
       return;
     }
@@ -105,6 +107,7 @@ function warmCoverCache(src?: string): void {
           }),
       )
       .then(() => {
+        // Cache the decoded element so card render can clone without re-decoding.
         coverImageElementCache.set(targetSrc, image);
       });
     coverImagePreloadPromises.set(targetSrc, preloadPromise);

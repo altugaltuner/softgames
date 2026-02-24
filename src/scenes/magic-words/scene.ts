@@ -133,6 +133,7 @@ export class MagicWordsScene implements ManagedScene {
   }
 
   init = async (): Promise<ManagedScene> => {
+    // Keep load order explicit: static visuals, cache warmup, controls, then dialogue data.
     await this.loadBackgroundPattern();
     await preloadMagicWordsCache();
     await this.loadControlIcons();
@@ -141,6 +142,7 @@ export class MagicWordsScene implements ManagedScene {
     this.dialogueFlow.setDialogues(dialogues);
     this.dialogueAudio.setup(dialogues);
     this.dialogueFlow.hideAllDialogues();
+    // Reveal controls/avatars only after assets and dialogue state are ready.
     this.controlsContainer.visible = true;
     for (const slot of Object.values(this.slots)) {
       slot.container.visible = true;
@@ -152,6 +154,7 @@ export class MagicWordsScene implements ManagedScene {
   resize = (payload: ResizePayload): void => {
     this.layout.resize(payload);
     if (!this.root.visible) {
+      // Scene becomes visible on first resize so initial placement is already correct.
       this.root.visible = true;
     }
   };
@@ -239,6 +242,7 @@ export class MagicWordsScene implements ManagedScene {
       }
     }
 
+    // Avatar textures are loaded per slot and skipped gracefully if unavailable.
     for (const [name, slot] of Object.entries(this.slots)) {
       const avatarTexture = await getAvatarTextureByName(name);
       if (!avatarTexture) {

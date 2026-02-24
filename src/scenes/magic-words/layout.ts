@@ -19,6 +19,7 @@ export class MagicWordsLayout {
     const textureWidth = this.options.backgroundPattern.texture.width;
     const textureHeight = this.options.backgroundPattern.texture.height;
     if (textureWidth > 0 && textureHeight > 0) {
+      // Cover strategy keeps the pattern filled without letterboxing.
       const coverScale = Math.max(width / textureWidth, height / textureHeight);
       this.options.backgroundPattern.scale.set(coverScale, coverScale);
     }
@@ -42,6 +43,7 @@ export class MagicWordsLayout {
       this.positionSlot(slot, x, y, avatarSize);
     }
     if (this.options.isLoaded()) {
+      // Reapply focus scale after slot/base scale updates.
       this.options.onApplyFocusScale(false);
     }
 
@@ -49,6 +51,7 @@ export class MagicWordsLayout {
     const playPauseSize = MagicWordsSceneConfig.button.height;
     const totalWidth =
       nextWidth + MagicWordsSceneConfig.interaction.controlsGap + playPauseSize;
+    // Keep controls centered as a single horizontal group.
     const nextCenterX = -totalWidth * 0.5 + nextWidth * 0.5;
     const playPauseCenterX = totalWidth * 0.5 - playPauseSize * 0.5;
 
@@ -76,6 +79,7 @@ export class MagicWordsLayout {
     this.options.onResetDialogueTransform(slot);
 
     if (slot.side === "left") {
+      // Left/right slots use mirrored bubble transforms to keep tails speaker-facing.
       slot.bubble.scale.set(
         MagicWordsSceneConfig.bubble.left.scaleX,
         MagicWordsSceneConfig.bubble.left.scaleY,

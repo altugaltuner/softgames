@@ -127,6 +127,7 @@ export class MagicWordsControls {
     hoverColor: number,
     pressedColor: number,
   ): void {
+    // Keep interaction animation/color logic in one place so both controls behave consistently.
     button.on("pointerover", () => {
       this.drawButtonBackground(background, width, height, hoverColor);
       gsap.to(button.position, {
@@ -201,6 +202,7 @@ export class MagicWordsControls {
 
   private playAndAwaitCompletion(): void {
     this.clearAutoPlayFallbackTimer();
+    // Cycle id invalidates stale callbacks when autoplay is paused/restarted mid-playback.
     const cycleId = ++this.autoPlayCycleId;
     const handlePlaybackComplete = () => {
       if (!this.isAutoPlaying || cycleId !== this.autoPlayCycleId) {
@@ -215,6 +217,7 @@ export class MagicWordsControls {
     const fallbackWaitMs = hasAudioPlayback
       ? MagicWordsSceneConfig.interaction.autoPlayAudioSafetyTimeoutMs
       : MagicWordsSceneConfig.interaction.autoPlayIntervalMs;
+    // Safety fallback continues autoplay even if the audio completion callback never fires.
     this.autoPlayFallbackTimerId = window.setTimeout(
       handlePlaybackComplete,
       fallbackWaitMs,
@@ -235,6 +238,7 @@ export class MagicWordsControls {
     }
 
     if (!this.hasAutoPlayStarted) {
+      // Start autoplay from the first line on the very first run.
       this.options.onResetDialogueIndex();
       this.hasAutoPlayStarted = true;
     }
