@@ -1,18 +1,16 @@
-import { Container, Sprite, Ticker } from "pixi.js";
-import { easeInOutCubic } from "./easing";
+import { gsap } from "gsap";
+import { Container, Sprite } from "pixi.js";
 import type { SequentialFlightConfig } from "./types";
 
 class SeqLauncher {
   private readonly cardsCt: Container;
-  private readonly cards: Sprite[];
   private readonly cfg: SequentialFlightConfig;
-  private readonly ticker = Ticker.shared;
   private isStarted = false;
-  private launchTimerId: number | null = null;
   private travelX = 0;
   private centerY = 0;
-  private isTicking = false;
   private readonly queue: Sprite[];
+  private readonly launchCalls: gsap.core.Tween[] = [];
+  private readonly flightTweens = new Map<Sprite, gsap.core.Tween>();
   private readonly landedYBySprite = new Map<Sprite, number>();
   private launchIdx = 0;
   private readonly flights = new Map<
@@ -21,8 +19,7 @@ class SeqLauncher {
       fromX: number;
       fromY: number;
       targetY: number;
-      startedAt: number;
-      durationMs: number;
+      progress: number;
     }
   >();
 
@@ -32,9 +29,8 @@ class SeqLauncher {
     config: SequentialFlightConfig,
   ) {
     this.cardsCt = cardContainer;
-    this.cards = sprites;
     this.cfg = config;
-    this.queue = [...this.cards].reverse();
+    this.queue = [...sprites].reverse();
   }
 
   update = (width: number, height: number): void => {
@@ -52,69 +48,82 @@ class SeqLauncher {
     for (const [sprite, targetY] of this.landedYBySprite) {
       sprite.position.set(this.travelX, targetY);
     }
+    for (const [sprite, flight] of this.flights) {
+      this.updateFlightPosition(sprite, flight);
+    }
 
     if (!this.isStarted) {
       this.isStarted = true;
-      this.launch();
-      this.launchTimerId = window.setInterval(this.launch, this.cfg.launchIntervalMs);
+      this.scheduleLaunches();
     }
   };
 
   stop = (): void => {
-    if (this.launchTimerId !== null) {
-      window.clearInterval(this.launchTimerId);
-      this.launchTimerId = null;
+    for (const call of this.launchCalls) {
+      call.kill();
     }
-    if (this.isTicking) {
-      this.ticker.remove(this.tick);
-      this.isTicking = false;
+    this.launchCalls.length = 0;
+
+    for (const tween of this.flightTweens.values()) {
+      tween.kill();
     }
+    this.flightTweens.clear();
     this.flights.clear();
   };
 
-  private tick = (): void => {
-    const now = performance.now();
-    for (const [sprite, flight] of this.flights.entries()) {
-      const tRaw = Math.min(1, (now - flight.startedAt) / flight.durationMs);
-      const t = easeInOutCubic(tRaw, this.cfg.easing);
-      const arcY = Math.sin(Math.PI * tRaw) * this.cfg.arcLiftY;
-      sprite.position.x = flight.fromX + (this.travelX - flight.fromX) * t;
-      sprite.position.y = flight.fromY + (flight.targetY - flight.fromY) * t - arcY;
-
-      if (tRaw >= 1) {
-        sprite.position.set(this.travelX, flight.targetY);
-        this.landedYBySprite.set(sprite, flight.targetY);
-        this.flights.delete(sprite);
-      }
+  private scheduleLaunches(): void {
+    const intervalSec = this.cfg.launchIntervalMs / 1000;
+    this.launch();
+    for (let i = 1; i < this.queue.length + 1; i += 1) {
+      const call = gsap.delayedCall(intervalSec * i, this.launch);
+      this.launchCalls.push(call);
     }
-  };
+  }
 
   private launch = (): void => {
     const sprite = this.queue.shift();
     if (!sprite) {
-      if (this.launchTimerId !== null) {
-        window.clearInterval(this.launchTimerId);
-        this.launchTimerId = null;
-      }
       return;
     }
 
     this.cardsCt.setChildIndex(sprite, this.cardsCt.children.length - 1);
     const targetY = this.cfg.landedStackOffsetY * this.launchIdx;
     this.launchIdx += 1;
-    this.flights.set(sprite, {
+    const flight = {
       fromX: sprite.position.x,
       fromY: sprite.position.y,
       targetY,
-      startedAt: performance.now(),
-      durationMs: this.cfg.durationMs,
+      progress: 0,
+    };
+    this.flights.set(sprite, flight);
+
+    const tween = gsap.to(flight, {
+      progress: 1,
+      duration: this.cfg.durationMs / 1000,
+      ease: this.cfg.easing as gsap.EaseString,
+      onUpdate: () => {
+        this.updateFlightPosition(sprite, flight);
+      },
+      onComplete: () => {
+        sprite.position.set(this.travelX, flight.targetY);
+        this.landedYBySprite.set(sprite, flight.targetY);
+        this.flights.delete(sprite);
+        this.flightTweens.delete(sprite);
+      },
     });
 
-    if (!this.isTicking) {
-      this.ticker.add(this.tick);
-      this.isTicking = true;
-    }
+    this.flightTweens.set(sprite, tween);
   };
+
+  private updateFlightPosition(
+    sprite: Sprite,
+    flight: { fromX: number; fromY: number; targetY: number; progress: number },
+  ): void {
+    const arcY = Math.sin(Math.PI * flight.progress) * this.cfg.arcLiftY;
+    sprite.position.x = flight.fromX + (this.travelX - flight.fromX) * flight.progress;
+    sprite.position.y =
+      flight.fromY + (flight.targetY - flight.fromY) * flight.progress - arcY;
+  }
 }
 
 export function createLauncher(

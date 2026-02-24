@@ -1,11 +1,3 @@
-export type EaseInOutCubicConfig = {
-  midpoint: number;
-  initialMultiplier: number;
-  endScale: number;
-  power: number;
-  endDivisor: number;
-};
-
 export type TweenConfig = {
   durationMs: number;
   startXRatio: number;
@@ -20,5 +12,5 @@ export type SequentialFlightConfig = TweenConfig & {
   responsiveScaleBreakpointHeight: number;
   landedStackOffsetY: number;
   arcLiftY: number;
-  easing: EaseInOutCubicConfig;
+  easing: string;
 };
