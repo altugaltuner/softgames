@@ -16,9 +16,9 @@ import {
   getMagicWordsDialogue,
   preloadMagicWordsCache,
 } from "./cache";
-import { MagicWordsDialogueAudio } from "./dialogue-audio";
+import { DialogueAudio } from "./dialogueAudio";
 import { MagicWordsControls } from "./controls";
-import { MagicWordsDialogueFlow } from "./dialogue-flow";
+import { MagicWordsDialogueFlow } from "./dialogueFlow";
 import { MagicWordsLayout } from "./layout";
 import type { SpeakerName } from "./type";
 
@@ -55,7 +55,7 @@ export class MagicWordsScene implements ManagedScene {
   private readonly dialogueFlow: MagicWordsDialogueFlow;
   private readonly layout: MagicWordsLayout;
   private isLoaded = false;
-  private readonly dialogueAudio = new MagicWordsDialogueAudio();
+  private readonly dialogueAudio = new DialogueAudio();
 
   constructor(app: Application) {
     this.app = app;

@@ -4,7 +4,7 @@ type BackButtonOptions = {
   onClick: () => void;
 };
 
-class BackButtonHud {
+class BackButton {
 
   private readonly app: Application;
   private readonly options: BackButtonOptions;
@@ -58,7 +58,7 @@ export function addBackButton(
   app: Application,
   options: BackButtonOptions,
 ): () => void {
-  const button = new BackButtonHud(app, options);
+  const button = new BackButton(app, options);
   button.mount();
   return button.unmount;
 }

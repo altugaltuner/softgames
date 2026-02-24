@@ -1,15 +1,14 @@
 import { Application } from "pixi.js";
-import { createApp } from "./CreateApp";
-import { createResizeManager } from "./ResizeManager";
+import { createApp } from "./createApp";
+import { createResizeManager } from "./resizeManager";
 import type { GameCard, ManagedScene, SceneDesign, SceneModule } from "./type";
 import gamesData from "../data/games.json";
-import { renderMenuScene } from "../scenes/MenuScene";
-import { addBackButton } from "../shared/AddBackButton";
-import { attachFpsHud } from "../shared/FpsHud";
+import { renderMenuScene } from "../scenes/menuScene";
+import { addBackButton } from "../shared/backButton";
+import { attachFpsHud } from "../shared/fpsHud";
 
 const games = gamesData as GameCard[];
 const GAME_ROUTES = new Set(games.map((game) => game.url));
-
 const sceneModuleLoaders = import.meta.glob<SceneModule>("../scenes/*/index.ts");
 
 function routeToScene(route: string): string {
@@ -65,50 +64,63 @@ class SceneManager {
       return;
     }
 
-    // On first direct game entry, prevent menu background flash.
     if (!this.root.firstElementChild) {
       setDocumentGameMode(true);
     }
+    let app: Application | null = null;
+    let scene: ManagedScene | null = null;
 
-    const app = await createApp(this.root, {
-      backgroundColor: 0x0b0d12,
-      mount: false,
-    });
+    try {
+      app = await createApp(this.root, {
+        backgroundColor: 0x0b0d12,
+        mount: false,
+      });
 
-    if (token !== this.renderToken) {
-      app.destroy(true);
-      return;
+      if (token !== this.renderToken) {
+        throw new Error("Route render superseded while creating app.");
+      }
+
+      const resolved = await this.createSceneForPath(path, app);
+      scene = resolved.scene;
+
+      if (token !== this.renderToken) {
+        throw new Error("Route render superseded while creating scene.");
+      }
+
+      const detachFps = attachFpsHud(app);
+      const detachBackButton = addBackButton(app, {
+        onClick: () => {
+          requestAnimationFrame(() => this.navigate("/"));
+        },
+      });
+      const detachResize = createResizeManager(
+        resolved.design.width,
+        resolved.design.height,
+        scene.resize,
+      );
+
+      setDocumentGameMode(true);
+      this.root.replaceChildren(app.canvas);
+
+      this.cleanup = () => {
+        detachResize();
+        detachFps();
+        detachBackButton();
+        scene?.destroy();
+        app?.destroy(true);
+      };
+    } catch (error) {
+      scene?.destroy();
+      app?.destroy(true);
+
+      if (token !== this.renderToken) {
+        return;
+      }
+
+      setDocumentGameMode(false);
+      renderMenuScene(this.root, { onNavigate: this.navigate });
+      throw error;
     }
-
-    const { scene, design } = await this.createSceneForPath(path, app);
-    if (token !== this.renderToken) {
-      scene.destroy();
-      app.destroy(true);
-      return;
-    }
-
-    const detachFps = attachFpsHud(app);
-    const detachBackButton = addBackButton(app, {
-      onClick: () => {
-        requestAnimationFrame(() => this.navigate("/"));
-      },
-    });
-    const detachResize = createResizeManager(
-      design.width,
-      design.height,
-      scene.resize,
-    );
-
-    setDocumentGameMode(true);
-    this.root.replaceChildren(app.canvas);
-
-    this.cleanup = () => {
-      detachResize();
-      detachFps();
-      detachBackButton();
-      scene.destroy();
-      app.destroy(true);
-    };
   }
 
   private async createSceneForPath(

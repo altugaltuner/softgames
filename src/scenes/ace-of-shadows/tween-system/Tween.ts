@@ -2,7 +2,7 @@ import { gsap } from "gsap";
 import { Container, Sprite } from "pixi.js";
 import type { SequentialFlightConfig } from "./types";
 
-class SeqLauncher {
+class TweenLauncher {
   private readonly cardsCt: Container;
   private readonly cfg: SequentialFlightConfig;
   private isStarted = false;
@@ -38,7 +38,7 @@ class SeqLauncher {
     const hRatio = height / this.cfg.responsiveScaleBreakpointHeight;
     const scale = this.cfg.scale * Math.min(1, wRatio, hRatio);
     this.cardsCt.scale.set(scale);
-    // deckContainer merkezde olduğu için koordinatları merkez tabanlı hesapla
+
     const startX = width * this.cfg.startXRatio - width / 2;
     const endX = width * this.cfg.endXRatio - width / 2;
     this.centerY = height * this.cfg.centerYRatio - height / 2;
@@ -131,7 +131,7 @@ export function createLauncher(
   sprites: Sprite[],
   config: SequentialFlightConfig,
 ): { update: (width: number, height: number) => void; stop: () => void } {
-  const launcher = new SeqLauncher(cardContainer, sprites, config);
+  const launcher = new TweenLauncher(cardContainer, sprites, config);
   return {
     update: launcher.update,
     stop: launcher.stop,

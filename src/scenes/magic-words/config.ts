@@ -24,6 +24,7 @@ export const MagicWordsSceneConfig = {
     buttonHoverOffset: -5,
     buttonAnimDuration: 0.2,
     autoPlayIntervalMs: 3000,
+    autoPlayAudioSafetyTimeoutMs: 15000,
     nextButton: {
       hoverFillColor: 0x004b08,
       pressedFillColor: 0x003d06,
@@ -76,12 +77,12 @@ export const MagicWordsSceneConfig = {
       Penny: {
         side: "right" as const,
         landscape: { xRatio: 0.6, yRatio: 0.5 },
-        portrait: { xRatio: 0.6, yRatio: 0.5 }, // { xRatio: 0.75, yRatio: 0.30 }
+        portrait: { xRatio: 0.6, yRatio: 0.5 },
       },
       Leonard: {
         side: "right" as const,
         landscape: { xRatio: 0.8, yRatio: 0.5 },
-        portrait: { xRatio: 0.8, yRatio: 0.5 }, // { xRatio: 0.75, yRatio: 0.65 }
+        portrait: { xRatio: 0.8, yRatio: 0.5 },
       },
     },
   },

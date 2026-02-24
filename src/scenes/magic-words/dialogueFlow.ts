@@ -1,23 +1,19 @@
 import { gsap } from "gsap";
 import { getEmojiTextureByName } from "./cache";
 import { MagicWordsSceneConfig } from "./config";
-import { renderInlineDialog } from "./dialog-renderer";
-import type { MagicWordsDialogueAudio } from "./dialogue-audio";
+import { renderInlineDialog } from "./dialogRenderer";
 import { magicWordsEvents } from "./events";
-import type { AvatarSlot, DialogueItem, SpeakerName } from "./type";
-
-type MagicWordsDialogueFlowOptions = {
-  slots: Record<SpeakerName, AvatarSlot>;
-  dialogueAudio: MagicWordsDialogueAudio;
-};
-
-type ShowNextDialogueOptions = {
-  onPlaybackComplete?: () => void;
-};
+import type {
+  AvatarSlot,
+  DialogueItem,
+  MagicWordsDialogueFlowOptions,
+  ShowNextDialogueOptions,
+  SpeakerName,
+} from "./type";
 
 export class MagicWordsDialogueFlow {
   private readonly slots: Record<SpeakerName, AvatarSlot>;
-  private readonly dialogueAudio: MagicWordsDialogueAudio;
+  private readonly dialogueAudio: MagicWordsDialogueFlowOptions["dialogueAudio"];
   private dialogues: DialogueItem[] = [];
   private currentDialogueIndex = -1;
   private activeSpeaker: SpeakerName | null = null;

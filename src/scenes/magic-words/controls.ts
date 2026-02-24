@@ -1,20 +1,7 @@
 import { gsap } from "gsap";
-import { Container, Graphics, Sprite, Text } from "pixi.js";
+import { Container, Graphics } from "pixi.js";
 import { MagicWordsSceneConfig } from "./config";
-
-type MagicWordsControlsOptions = {
-  nextButton: Container;
-  nextButtonBg: Graphics;
-  nextButtonText: Text;
-  playPauseButton: Container;
-  playPauseButtonBg: Graphics;
-  playIcon: Sprite;
-  pauseIcon: Sprite;
-  hasDialogues: () => boolean;
-  onShowNextDialogue: (options?: { onPlaybackComplete?: () => void }) => boolean;
-  onResetDialogueIndex: () => void;
-};
-const AUTOPLAY_AUDIO_SAFETY_TIMEOUT_MS = 15000;
+import type { MagicWordsControlsOptions } from "./type";
 
 export class MagicWordsControls {
   private readonly options: MagicWordsControlsOptions;
@@ -226,7 +213,7 @@ export class MagicWordsControls {
       onPlaybackComplete: handlePlaybackComplete,
     });
     const fallbackWaitMs = hasAudioPlayback
-      ? AUTOPLAY_AUDIO_SAFETY_TIMEOUT_MS
+      ? MagicWordsSceneConfig.interaction.autoPlayAudioSafetyTimeoutMs
       : MagicWordsSceneConfig.interaction.autoPlayIntervalMs;
     this.autoPlayFallbackTimerId = window.setTimeout(
       handlePlaybackComplete,

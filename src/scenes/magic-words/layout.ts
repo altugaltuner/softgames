@@ -1,20 +1,6 @@
-import { Container, Graphics, Sprite, Text } from "pixi.js";
 import type { ResizePayload } from "../../app/type";
 import { MagicWordsSceneConfig } from "./config";
-import type { AvatarSlot, SpeakerName } from "./type";
-
-type MagicWordsLayoutOptions = {
-  backgroundFill: Graphics;
-  backgroundPattern: Sprite;
-  slots: Record<SpeakerName, AvatarSlot>;
-  headerText: Text;
-  controlsContainer: Container;
-  nextButton: Container;
-  playPauseButton: Container;
-  isLoaded: () => boolean;
-  onResetDialogueTransform: (slot: AvatarSlot) => void;
-  onApplyFocusScale: (animate: boolean) => void;
-};
+import type { AvatarSlot, MagicWordsLayoutOptions, SpeakerName } from "./type";
 
 export class MagicWordsLayout {
   private readonly options: MagicWordsLayoutOptions;

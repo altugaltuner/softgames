@@ -1,19 +1,4 @@
-import type { DialogueItem } from "./type";
-
-export type MagicWordsDialogueProgressPayload = {
-  index: number;
-  position: number;
-  total: number;
-  isFirst: boolean;
-  isLast: boolean;
-  dialogue: DialogueItem;
-};
-
-type MagicWordsEventMap = {
-  "dialogue:progress": MagicWordsDialogueProgressPayload;
-};
-
-type Listener<T> = (payload: T) => void;
+import type { Listener, MagicWordsEventMap } from "./type";
 
 class MagicWordsEventBus {
   private readonly listeners: {

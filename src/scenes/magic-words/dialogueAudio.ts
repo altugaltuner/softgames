@@ -1,12 +1,8 @@
 import { sound } from "@pixi/sound";
 import { MagicWordsSceneConfig } from "./config";
-import type { DialogueItem } from "./type";
+import type { DialogueItem, PlayDialogueOptions } from "./type";
 
-type PlayDialogueOptions = {
-  onComplete?: () => void;
-};
-
-export class MagicWordsDialogueAudio {
+export class DialogueAudio {
   private readonly dialogueSoundAliases: Array<string | null> = [];
   private readonly ownedDialogueSoundAliases = new Set<string>();
   private activeDialogueSoundAlias: string | null = null;
@@ -100,5 +96,4 @@ export class MagicWordsDialogueAudio {
 
     return MagicWordsSceneConfig.dialogue.fallbackSpeaker.toLowerCase();
   }
-
 }
