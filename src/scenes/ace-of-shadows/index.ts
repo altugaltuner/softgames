@@ -3,7 +3,7 @@ import cardsData from "../../data/cards.json";
 import { AceOfShadowsConfig } from "./config";
 import { createLauncher } from "./tween-system/Tween";
 import type { AceOfShadowsScene } from "./types";
-import type { ResizePayload } from "../../types/App";
+import type { ResizePayload } from "../../app/type";
 
 const cards = cardsData as string[];
 const woodenBackgroundPath = "/assets/ui/wooden-bg.webp";
@@ -123,3 +123,6 @@ export const AceOfShadowsDesign = {
   width: AceOfShadowsConfig.designWidth,
   height: AceOfShadowsConfig.designHeight,
 };
+
+export const createScene = createAceOfShadowsScene;
+export const sceneDesign = AceOfShadowsDesign;

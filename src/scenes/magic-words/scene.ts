@@ -8,7 +8,7 @@ import {
   Texture,
 } from "pixi.js";
 import { gsap } from "gsap";
-import type { ManagedScene, ResizePayload } from "../../types/App";
+import type { ManagedScene, ResizePayload } from "../../app/type";
 import type { AvatarSlot, DialogueItem } from "./type";
 import { MagicWordsSceneConfig } from "./config";
 import {
@@ -115,7 +115,6 @@ export class MagicWordsScene implements ManagedScene {
   }
 
   init = async (): Promise<ManagedScene> => {
-    this.fireResize();
     await this.loadBackgroundPattern();
     await preloadMagicWordsCache();
     await this.loadControlIcons();
@@ -132,16 +131,6 @@ export class MagicWordsScene implements ManagedScene {
     this.isLoaded = true;
     return this;
   };
-
-  private fireResize(): void {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const scale = Math.min(
-      width / 640,
-      height / 360,
-    );
-    this.resize({ width, height, scale });
-  }
 
   resize = ({ width, height }: ResizePayload): void => {
     this.backgroundFill.clear();
@@ -220,15 +209,6 @@ export class MagicWordsScene implements ManagedScene {
     if (this.removeDialogueProgressLogger) {
       return;
     }
-
-    this.removeDialogueProgressLogger = magicWordsEvents.on(
-      "dialogue:progress",
-      (payload) => {
-        console.log(
-          `[MagicWords] Dialogue ${payload.position}/${payload.total} | ${payload.dialogue.name}: ${payload.dialogue.text}`,
-        );
-      },
-    );
   }
 
   private createAvatarSlot(

@@ -1,5 +1,5 @@
 import gamesData from "../data/games.json";
-import type { GameCard, MenuSceneOptions } from "../types/App";
+import type { GameCard, MenuSceneOptions } from "../app/type";
 
 const games = gamesData as GameCard[];
 const coverByTheme: Record<string, string> = {

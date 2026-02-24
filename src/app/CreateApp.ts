@@ -1,5 +1,5 @@
 import { Application } from "pixi.js";
-import type { CreateAppOptions } from "../types/App";
+import type { CreateAppOptions } from "./type";
 
 export async function createApp(
   root: HTMLElement,

@@ -1,4 +1,4 @@
-import type { ResizePayload } from "../types/App";
+import type { ResizePayload } from "./type";
 
 class ResizeManager {
   private readonly designWidth: number;

@@ -1,3 +1,5 @@
+import type { Application } from "pixi.js";
+
 export type CreateAppOptions = {
   backgroundColor?: number;
   mount?: boolean;
@@ -23,12 +25,21 @@ export type ResizePayload = {
   scale: number;
 };
 
-export type BackButtonOptions = {
-  onClick: () => void;
-};
-
 export type ManagedScene = {
   resize: (payload: ResizePayload) => void;
   destroy: () => void;
 };
 
+export type SceneDesign = {
+  width: number;
+  height: number;
+};
+
+export type SceneFactory = (
+  app: Application,
+) => ManagedScene | Promise<ManagedScene>;
+
+export type SceneModule = {
+  createScene: SceneFactory;
+  sceneDesign: SceneDesign;
+};

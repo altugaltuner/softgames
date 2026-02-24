@@ -2,12 +2,16 @@ import { Application, Assets, Container, Sprite, Texture } from "pixi.js";
 import { sound } from "@pixi/sound";
 import { createFireCircle } from "./fire";
 import { FlameConfig } from "./config";
-import type { ManagedScene } from "../../types/App";
+import type { ManagedScene } from "../../app/type";
 
 const fireBackgroundPath = "/assets/ui/fire-bg.webp";
 const torchPath = "/assets/textures/torch.png";
 const fireSoundPath = "/assets/sounds/fire-sound.mp3";
 const fireSoundAlias = "phoenixFlameFireSound";
+export const PhoenixFlameDesign = {
+  width: 1280,
+  height: 720,
+} as const;
 
 export function createPhoenixFlameScene(app: Application): ManagedScene {
   // Sahne kok konteyneri.
@@ -251,3 +255,6 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
       FlameConfig.placement.yOffset;
   }
 }
+
+export const createScene = createPhoenixFlameScene;
+export const sceneDesign = PhoenixFlameDesign;

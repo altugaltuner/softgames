@@ -1,20 +1,21 @@
-import { Application, Container, Graphics } from "pixi.js";
-import { createApp } from "./createApp";
+import { Application } from "pixi.js";
+import { createApp } from "./CreateApp";
 import { createResizeManager } from "./ResizeManager";
+import type { GameCard, ManagedScene, SceneDesign, SceneModule } from "./type";
 import gamesData from "../data/games.json";
-import { renderMenuScene } from "../scenes/menuScene";
-import {
-  AceOfShadowsDesign,
-  createAceOfShadowsScene,
-} from "../scenes/ace-of-shadows";
-import { createMagicWordsScene } from "../scenes/magic-words";
-import { createPhoenixFlameScene } from "../scenes/phoenix-flame";
+import { renderMenuScene } from "../scenes/MenuScene";
 import { addBackButton } from "../shared/AddBackButton";
 import { attachFpsHud } from "../shared/FpsHud";
-import type { GameCard, ManagedScene } from "../types/App";
 
 const games = gamesData as GameCard[];
 const GAME_ROUTES = new Set(games.map((game) => game.url));
+
+const sceneModuleLoaders = import.meta.glob<SceneModule>("../scenes/*/index.ts");
+
+function routeToScene(route: string): string {
+  const slug = route.replace(/^\/+/, "").replace(/\/+$/, "");
+  return `../scenes/${slug}/index.ts`;
+}
 
 class SceneManager {
   private readonly root: HTMLElement;
@@ -26,6 +27,7 @@ class SceneManager {
   }
 
   start(): void {
+    this.validateGameScenes();
     window.addEventListener("popstate", this.onPopState);
     void this.renderRoute();
   }
@@ -73,7 +75,7 @@ class SceneManager {
     document.documentElement.classList.add("is-game");
     document.body.classList.add("is-game");
 
-    const scene = await this.createSceneForPath(path, app);
+    const { scene, design } = await this.createSceneForPath(path, app);
     if (token !== this.renderToken) {
       scene.destroy();
       app.destroy(true);
@@ -82,11 +84,13 @@ class SceneManager {
 
     const detachFps = attachFpsHud(app);
     const detachBackButton = addBackButton(app, {
-      onClick: () => this.navigate("/"),
+      onClick: () => {
+        requestAnimationFrame(() => this.navigate("/"));
+      },
     });
     const detachResize = createResizeManager(
-      AceOfShadowsDesign.width,
-      AceOfShadowsDesign.height,
+      design.width,
+      design.height,
       scene.resize,
     );
 
@@ -104,38 +108,36 @@ class SceneManager {
   private async createSceneForPath(
     path: string,
     app: Application,
-  ): Promise<ManagedScene> {
-    if (path === "/ace-of-shadows") {
-      return createAceOfShadowsScene(app);
-    }
-    if (path === "/magic-words") {
-      return createMagicWordsScene(app);
-    }
-    if (path === "/phoenix-flame") {
-      return createPhoenixFlameScene(app);
-    }
-    return this.createBackgroundOnlyScene(app);
-  }
-  // bunlar çalışmıyor
-  private createBackgroundOnlyScene(app: Application): ManagedScene {
-    const container = new Container();
-    container.label = "BackgroundOnlyScene";
-    const background = new Graphics();
-    container.addChild(background);
-    app.stage.addChild(container);
+  ): Promise<{ scene: ManagedScene; design: SceneDesign }> {
+    const modulePath = routeToScene(path);
+    const loadSceneModule = sceneModuleLoaders[modulePath];
 
+    if (!loadSceneModule) {
+      throw new Error(`[SceneManager] Missing scene module for route: ${path}`);
+    }
+
+    const module = await loadSceneModule();
     return {
-      resize: ({ width, height }) => {
-        const size = Math.max(width, height) * 3;
-        background.clear();
-        background
-          .fill({ color: 0xb5b6b7 })
-          .rect(-size, -size, size * 3, size * 3);
-      },
-      destroy: () => {
-        container.destroy({ children: true });
-      },
+      scene: await module.createScene(app),
+      design: module.sceneDesign,
     };
+  }
+
+  private validateGameScenes(): void {
+    const missingRoutes: string[] = [];
+
+    for (const game of games) {
+      const modulePath = routeToScene(game.url);
+      if (!sceneModuleLoaders[modulePath]) {
+        missingRoutes.push(game.url);
+      }
+    }
+
+    if (missingRoutes.length > 0) {
+      throw new Error(
+        `[SceneManager] games.json route(s) missing scene module: ${missingRoutes.join(", ")}`,
+      );
+    }
   }
 }
 

@@ -1,5 +1,8 @@
 import { Application, Container, Graphics, Text } from "pixi.js";
-import type { BackButtonOptions } from "../types/App";
+
+type BackButtonOptions = {
+  onClick: () => void;
+};
 
 class BackButtonHud {
 

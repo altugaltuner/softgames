@@ -1,5 +1,5 @@
 import type { Container } from "pixi.js";
-import type { ResizePayload } from "../../types/App";
+import type { ResizePayload } from "../../app/type";
 
 export type AceOfShadowsScene = {
   container: Container;
