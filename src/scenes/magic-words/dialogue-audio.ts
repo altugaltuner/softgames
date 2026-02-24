@@ -2,6 +2,10 @@ import { sound } from "@pixi/sound";
 import { MagicWordsSceneConfig } from "./config";
 import type { DialogueItem } from "./type";
 
+type PlayDialogueOptions = {
+  onComplete?: () => void;
+};
+
 export class MagicWordsDialogueAudio {
   private readonly dialogueSoundAliases: Array<string | null> = [];
   private readonly ownedDialogueSoundAliases = new Set<string>();
@@ -32,18 +36,27 @@ export class MagicWordsDialogueAudio {
     }
   }
 
-  play(dialogueIndex: number): void {
+  play(dialogueIndex: number, options: PlayDialogueOptions = {}): boolean {
     const alias = this.dialogueSoundAliases[dialogueIndex];
     if (!alias) {
-      return;
+      return false;
     }
 
     try {
       sound.stop(alias);
-      sound.play(alias);
+      sound.play(alias, {
+        complete: () => {
+          if (this.activeDialogueSoundAlias === alias) {
+            this.activeDialogueSoundAlias = null;
+          }
+          options.onComplete?.();
+        },
+      });
       this.activeDialogueSoundAlias = alias;
+      return true;
     } catch {
       this.activeDialogueSoundAlias = null;
+      return false;
     }
   }
 
@@ -87,4 +100,5 @@ export class MagicWordsDialogueAudio {
 
     return MagicWordsSceneConfig.dialogue.fallbackSpeaker.toLowerCase();
   }
+
 }

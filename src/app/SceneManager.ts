@@ -17,6 +17,11 @@ function routeToScene(route: string): string {
   return `../scenes/${slug}/index.ts`;
 }
 
+function setDocumentGameMode(isGame: boolean): void {
+  document.documentElement.classList.toggle("is-game", isGame);
+  document.body.classList.toggle("is-game", isGame);
+}
+
 class SceneManager {
   private readonly root: HTMLElement;
   private cleanup: (() => void) | null = null;
@@ -55,10 +60,14 @@ class SceneManager {
     const path = window.location.pathname;
 
     if (!GAME_ROUTES.has(path)) {
-      document.documentElement.classList.remove("is-game");
-      document.body.classList.remove("is-game");
+      setDocumentGameMode(false);
       renderMenuScene(this.root, { onNavigate: this.navigate });
       return;
+    }
+
+    // On first direct game entry, prevent menu background flash.
+    if (!this.root.firstElementChild) {
+      setDocumentGameMode(true);
     }
 
     const app = await createApp(this.root, {
@@ -70,10 +79,6 @@ class SceneManager {
       app.destroy(true);
       return;
     }
-
-    this.root.replaceChildren(app.canvas);
-    document.documentElement.classList.add("is-game");
-    document.body.classList.add("is-game");
 
     const { scene, design } = await this.createSceneForPath(path, app);
     if (token !== this.renderToken) {
@@ -94,14 +99,15 @@ class SceneManager {
       scene.resize,
     );
 
+    setDocumentGameMode(true);
+    this.root.replaceChildren(app.canvas);
+
     this.cleanup = () => {
       detachResize();
       detachFps();
       detachBackButton();
       scene.destroy();
       app.destroy(true);
-      document.documentElement.classList.remove("is-game");
-      document.body.classList.remove("is-game");
     };
   }
 

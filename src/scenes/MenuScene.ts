@@ -7,25 +7,30 @@ const coverByTheme: Record<string, string> = {
   sweet: "/assets/ui/messaging-cover.webp",
   tripeaks: "/assets/ui/flame-cover.webp",
 };
+const coverImageElementCache = new Map<string, HTMLImageElement>();
+const coverImagePreloadPromises = new Map<string, Promise<void>>();
+
+warmCoverCache();
 
 export function renderMenuScene(
   root: HTMLElement,
   options: MenuSceneOptions = {},
 ): void {
+  warmCoverCache();
   const container = document.createElement("div");
   container.className = "menu-scene";
-  container.innerHTML = `
-    <h1 class="menu-title">Softgame Mechanics</h1>
-    <div class="menu-grid">
-      ${games.map(renderGameCard).join("")}
-    </div>
-    <p class="menu-footer">made by altug altuner</p>
-  `;
-
-  const grid = container.querySelector<HTMLDivElement>(".menu-grid");
-  if (!grid) {
-    return;
+  const title = document.createElement("h1");
+  title.className = "menu-title";
+  title.textContent = "Softgame Mechanics";
+  const grid = document.createElement("div");
+  grid.className = "menu-grid";
+  for (const game of games) {
+    grid.appendChild(renderGameCard(game));
   }
+  const footer = document.createElement("p");
+  footer.className = "menu-footer";
+  footer.textContent = "made by altug altuner";
+  container.append(title, grid, footer);
 
   grid.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
@@ -47,18 +52,79 @@ export function renderMenuScene(
   root.replaceChildren(container);
 }
 
-function renderGameCard(game: GameCard): string {
+function renderGameCard(game: GameCard): HTMLButtonElement {
   const coverImage = coverByTheme[game.theme] ?? "/assets/ui/card-cover.webp";
+  const card = document.createElement("button");
+  card.className = "menu-card";
+  card.type = "button";
+  card.dataset.url = game.url;
+  const imageWrap = document.createElement("div");
+  imageWrap.className = "menu-card__image";
+  const cover = getCachedCoverImage(coverImage, `${game.title} cover`);
+  cover.className = "menu-card__cover";
+  imageWrap.appendChild(cover);
+  const body = document.createElement("div");
+  body.className = "menu-card__body";
+  const title = document.createElement("h2");
+  title.className = "menu-card__title";
+  title.textContent = game.title;
+  const description = document.createElement("p");
+  description.className = "menu-card__description";
+  description.textContent = game.description;
+  body.append(title, description);
+  card.append(imageWrap, body);
+  return card;
+}
 
-  return `
-    <button class="menu-card" type="button" data-url="${game.url}">
-      <div class="menu-card__image">
-        <img class="menu-card__cover" src="${coverImage}" alt="${game.title} cover" loading="lazy" />
-      </div>
-      <div class="menu-card__body">
-        <h2 class="menu-card__title">${game.title}</h2>
-        <p class="menu-card__description">${game.description}</p>
-      </div>
-    </button>
-  `;
+function warmCoverCache(src?: string): void {
+  const targets = src ? [src] : Array.from(new Set(Object.values(coverByTheme)));
+
+  for (const targetSrc of targets) {
+    if (coverImageElementCache.has(targetSrc)) {
+      continue;
+    }
+    if (coverImagePreloadPromises.has(targetSrc)) {
+      continue;
+    }
+
+    const image = new Image();
+    image.decoding = "async";
+    image.fetchPriority = "high";
+    image.src = targetSrc;
+    const preloadPromise = image
+      .decode()
+      .catch(
+        () =>
+          new Promise<void>((resolve) => {
+            if (image.complete) {
+              resolve();
+              return;
+            }
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          }),
+      )
+      .then(() => {
+        coverImageElementCache.set(targetSrc, image);
+      });
+    coverImagePreloadPromises.set(targetSrc, preloadPromise);
+  }
+}
+
+function getCachedCoverImage(src: string, alt: string): HTMLImageElement {
+  const cached = coverImageElementCache.get(src);
+  if (cached) {
+    const cloned = cached.cloneNode(false) as HTMLImageElement;
+    cloned.alt = alt;
+    cloned.loading = "eager";
+    return cloned;
+  }
+
+  const image = new Image();
+  image.src = src;
+  image.alt = alt;
+  image.decoding = "async";
+  image.loading = "eager";
+  warmCoverCache(src);
+  return image;
 }
