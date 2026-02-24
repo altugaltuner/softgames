@@ -1,11 +1,11 @@
 import { Application } from "pixi.js";
-import { createApp } from "./createApp";
-import { createResizeManager } from "./resizeManager";
+import { createApp } from "./CreateApp";
+import { createResizeManager } from "./ResizeManager";
 import type { GameCard, ManagedScene, SceneDesign, SceneModule } from "./type";
 import gamesData from "../data/games.json";
-import { renderMenuScene } from "../scenes/menuScene";
+import { renderMenuScene } from "../scenes/MenuScene";
 import { addBackButton } from "../shared/backButton";
-import { attachFpsHud } from "../shared/fpsHud";
+import { attachFpsHud } from "../shared/FpsHud";
 
 const games = gamesData as GameCard[];
 const GAME_ROUTES = new Set(games.map((game) => game.url));

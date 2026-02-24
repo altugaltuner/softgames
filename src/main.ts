@@ -1,5 +1,5 @@
 import "./style.css";
-import { startSceneManager } from "./app/sceneManager";
+import { startSceneManager } from "./app/SceneManager";
 import { preloadMagicWordsCache } from "./scenes/magic-words";
 
 const root = document.getElementById("app");

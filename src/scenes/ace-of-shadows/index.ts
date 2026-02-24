@@ -1,7 +1,7 @@
 import { Application, Assets, Container, Graphics, Sprite, Texture, } from "pixi.js";
 import cardsData from "../../data/cards.json";
 import { AceOfShadowsConfig } from "./config";
-import { createLauncher } from "./tween-system/tween";
+import { createLauncher } from "./tween-system/Tween";
 import type { AceOfShadowsScene } from "./types";
 import type { ResizePayload } from "../../app/type";
 
