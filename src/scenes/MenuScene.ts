@@ -19,6 +19,7 @@ export function renderMenuScene(
     <div class="menu-grid">
       ${games.map(renderGameCard).join("")}
     </div>
+    <p class="menu-footer">made by altug altuner</p>
   `;
 
   const grid = container.querySelector<HTMLDivElement>(".menu-grid");

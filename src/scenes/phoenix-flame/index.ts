@@ -52,6 +52,7 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
   // Emit noktasi (resize ile guncellenir).
   let centerX = 0;
   let centerY = 0;
+  updateEmitterCenter(viewportWidth, viewportHeight);
 
   // Pool: bastan 10 sprite olusturup reuse ediyoruz.
   for (let i = 0; i < maxParticles; i += 1) {
@@ -134,14 +135,7 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
       layoutTorch(width, height);
 
       // Particle emit merkezi (ekranin orta-alt bolgesi).
-      centerX = width * FlameConfig.emitter.xRatio;
-      centerY =
-        height * FlameConfig.emitter.yRatio +
-        Math.min(
-          FlameConfig.emitter.yOffsetMax,
-          height * FlameConfig.emitter.yOffsetHeightRatio,
-        ) +
-        FlameConfig.placement.yOffset;
+      updateEmitterCenter(width, height);
 
     },
     destroy: () => {
@@ -244,5 +238,16 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     const containScale = Math.min(width / textureWidth, height / textureHeight);
     torch.position.set(width / 2, height / 1.4 + FlameConfig.placement.yOffset);
     torch.scale.set(containScale / 2);
+  }
+
+  function updateEmitterCenter(width: number, height: number): void {
+    centerX = width * FlameConfig.emitter.xRatio;
+    centerY =
+      height * FlameConfig.emitter.yRatio +
+      Math.min(
+        FlameConfig.emitter.yOffsetMax,
+        height * FlameConfig.emitter.yOffsetHeightRatio,
+      ) +
+      FlameConfig.placement.yOffset;
   }
 }
