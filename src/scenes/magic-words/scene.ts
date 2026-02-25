@@ -133,7 +133,7 @@ export class MagicWordsScene implements ManagedScene {
   }
 
   init = async (): Promise<ManagedScene> => {
-    // Keep load order explicit: static visuals, cache warmup, controls, then dialogue data.
+    // Preload all assets in order: static visuals, cache preload, controls, then dialogue data.
     await this.loadBackgroundPattern();
     await preloadMagicWordsCache();
     await this.loadControlIcons();

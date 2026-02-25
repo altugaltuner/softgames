@@ -9,7 +9,7 @@ export const PhoenixFlameDesign = {
   height: FlameConfig.design.height,
 } as const;
 
-export function createPhoenixFlameScene(app: Application): ManagedScene {
+export async function createPhoenixFlameScene(app: Application): Promise<ManagedScene> {
   const container = new Container();
   const background = new Sprite(Texture.WHITE);
   background.anchor.set(0.5);
@@ -93,25 +93,27 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     loop: true,
     volume: FlameConfig.audio.fireLoopVolume,
   });
-  // Visual assets load lazily; scene still runs with graceful fallback.
-  Assets.load<Texture>(FlameConfig.assets.backgroundPath)
-    .then((texture) => {
-      background.texture = texture;
-      background.alpha = 1;
-      layoutBackground(viewportWidth, viewportHeight);
-    })
-    .catch(() => {
-      background.alpha = 0;
-    });
-  Assets.load<Texture>(FlameConfig.assets.torchPath)
-    .then((texture) => {
-      torch.texture = texture;
-      torch.alpha = 1;
-      layoutTorch(viewportWidth, viewportHeight);
-    })
-    .catch(() => {
-      torch.alpha = 0;
-    });
+
+  const [backgroundResult, torchResult] = await Promise.allSettled([
+    Assets.load<Texture>(FlameConfig.assets.backgroundPath),
+    Assets.load<Texture>(FlameConfig.assets.torchPath),
+  ]);
+
+  if (backgroundResult.status === "fulfilled") {
+    background.texture = backgroundResult.value;
+    background.alpha = 1;
+    layoutBackground(viewportWidth, viewportHeight);
+  } else {
+    background.alpha = 0;
+  }
+
+  if (torchResult.status === "fulfilled") {
+    torch.texture = torchResult.value;
+    torch.alpha = 1;
+    layoutTorch(viewportWidth, viewportHeight);
+  } else {
+    torch.alpha = 0;
+  }
 
   return {
     resize: ({ width, height }) => {
