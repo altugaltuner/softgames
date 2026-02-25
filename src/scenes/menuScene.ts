@@ -7,17 +7,19 @@ const coverByTheme: Record<string, string> = {
   sweet: "/assets/ui/messaging-cover.webp",
   tripeaks: "/assets/ui/flame-cover.webp",
 };
+const DEFAULT_COVER_IMAGE = "/assets/ui/card-cover.webp";
 const coverImageElementCache = new Map<string, HTMLImageElement>();
 const coverImagePreloadPromises = new Map<string, Promise<void>>();
 
-// Warm common card covers at module load to reduce first-menu flicker.
-warmCoverCache();
+// Preload common card covers at module load to reduce first-menu flicker.
+preloadCoverImages();
 
 export function renderMenuScene(
   root: HTMLElement,
   options: MenuSceneOptions = {},
 ): void {
-  warmCoverCache();
+  preloadCoverImages();
+  const navigateTo = options.onNavigate ?? ((url: string) => window.location.assign(url));
   const container = document.createElement("div");
   container.className = "menu-scene";
   const title = document.createElement("h1");
@@ -43,19 +45,14 @@ export function renderMenuScene(
     if (!url) {
       return;
     }
-    if (options.onNavigate) {
-      // SceneManager navigation keeps SPA routing behavior.
-      options.onNavigate(url);
-      return;
-    }
-    window.location.assign(url);
+    navigateTo(url);
   });
 
   root.replaceChildren(container);
 }
 
 function renderGameCard(game: GameCard): HTMLButtonElement {
-  const coverImage = coverByTheme[game.theme] ?? "/assets/ui/card-cover.webp";
+  const coverImage = coverByTheme[game.theme] ?? DEFAULT_COVER_IMAGE;
   const card = document.createElement("button");
   card.className = "menu-card";
   card.type = "button";
@@ -78,14 +75,11 @@ function renderGameCard(game: GameCard): HTMLButtonElement {
   return card;
 }
 
-function warmCoverCache(src?: string): void {
+function preloadCoverImages(src?: string): void {
   const targets = src ? [src] : Array.from(new Set(Object.values(coverByTheme)));
 
   for (const targetSrc of targets) {
-    if (coverImageElementCache.has(targetSrc)) {
-      continue;
-    }
-    if (coverImagePreloadPromises.has(targetSrc)) {
+    if (coverImageElementCache.has(targetSrc) || coverImagePreloadPromises.has(targetSrc)) {
       continue;
     }
 
@@ -128,6 +122,6 @@ function getCachedCoverImage(src: string, alt: string): HTMLImageElement {
   image.alt = alt;
   image.decoding = "async";
   image.loading = "eager";
-  warmCoverCache(src);
+  preloadCoverImages(src);
   return image;
 }

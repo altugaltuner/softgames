@@ -4,13 +4,9 @@ import { createFireCircle } from "./fire";
 import { FlameConfig } from "./config";
 import type { ManagedScene } from "../../app/type";
 
-const fireBackgroundPath = "/assets/ui/fire-bg.webp";
-const torchPath = "/assets/textures/torch.png";
-const fireSoundPath = "/assets/sounds/fire-sound.mp3";
-const fireSoundAlias = "phoenixFlameFireSound";
 export const PhoenixFlameDesign = {
-  width: 1280,
-  height: 720,
+  width: FlameConfig.design.width,
+  height: FlameConfig.design.height,
 } as const;
 
 export function createPhoenixFlameScene(app: Application): ManagedScene {
@@ -89,13 +85,16 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
   container.addChild(background, torch, particleLayer);
   app.stage.addChild(container);
   app.ticker.add(update);
-  if (!sound.exists(fireSoundAlias)) {
-    sound.add(fireSoundAlias, fireSoundPath);
+  if (!sound.exists(FlameConfig.assets.fireSoundAlias)) {
+    sound.add(FlameConfig.assets.fireSoundAlias, FlameConfig.assets.fireSoundPath);
     ownsFireSoundAlias = true;
   }
-  sound.play(fireSoundAlias, { loop: true, volume: 0.5 });
+  sound.play(FlameConfig.assets.fireSoundAlias, {
+    loop: true,
+    volume: FlameConfig.audio.fireLoopVolume,
+  });
   // Visual assets load lazily; scene still runs with graceful fallback.
-  Assets.load<Texture>(fireBackgroundPath)
+  Assets.load<Texture>(FlameConfig.assets.backgroundPath)
     .then((texture) => {
       background.texture = texture;
       background.alpha = 1;
@@ -104,7 +103,7 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     .catch(() => {
       background.alpha = 0;
     });
-  Assets.load<Texture>(torchPath)
+  Assets.load<Texture>(FlameConfig.assets.torchPath)
     .then((texture) => {
       torch.texture = texture;
       torch.alpha = 1;
@@ -125,9 +124,9 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
     },
     destroy: () => {
       app.ticker.remove(update);
-      sound.stop(fireSoundAlias);
-      if (ownsFireSoundAlias && sound.exists(fireSoundAlias)) {
-        sound.remove(fireSoundAlias);
+      sound.stop(FlameConfig.assets.fireSoundAlias);
+      if (ownsFireSoundAlias && sound.exists(FlameConfig.assets.fireSoundAlias)) {
+        sound.remove(FlameConfig.assets.fireSoundAlias);
       }
       container.destroy({ children: true });
       particleTexture.destroy(true);
@@ -199,19 +198,23 @@ export function createPhoenixFlameScene(app: Application): ManagedScene {
   }
 
   function layoutBackground(width: number, height: number): void {
-    const textureWidth = background.texture.width || 1;
-    const textureHeight = background.texture.height || 1;
+    const textureWidth = background.texture.width || FlameConfig.render.textureSizeFallback;
+    const textureHeight =
+      background.texture.height || FlameConfig.render.textureSizeFallback;
     const coverScale = Math.max(width / textureWidth, height / textureHeight);
     background.position.set(width / 2, height / 2);
     background.scale.set(coverScale);
   }
 
   function layoutTorch(width: number, height: number): void {
-    const textureWidth = torch.texture.width || 1;
-    const textureHeight = torch.texture.height || 1;
+    const textureWidth = torch.texture.width || FlameConfig.render.textureSizeFallback;
+    const textureHeight = torch.texture.height || FlameConfig.render.textureSizeFallback;
     const containScale = Math.min(width / textureWidth, height / textureHeight);
-    torch.position.set(width / 2, height / 1.4 + FlameConfig.placement.yOffset);
-    torch.scale.set(containScale / 2);
+    torch.position.set(
+      width / 2,
+      height / FlameConfig.placement.torchYRatio + FlameConfig.placement.yOffset,
+    );
+    torch.scale.set(containScale / FlameConfig.placement.torchScaleDivisor);
   }
 
   function updateEmitterCenter(width: number, height: number): void {

@@ -11,6 +11,6 @@ export const AceOfShadowsConfig = {
   startXRatio: 7 / 10,
   endXRatio: 3 / 10,
   centerYRatio: 1 / 2,
-  arcLiftY: 75,
-  easing: "power3.inOut",
+  arcLiftY: 250,
+  easing: "power2.inOut",
 } as const;

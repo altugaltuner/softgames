@@ -34,14 +34,24 @@ export function renderInlineDialog(
 
   const wrap = () => { cx = 0; cy += rowH; };
   const centerY = (h: number) => cy + Math.max(0, (rowH - h) * 0.5);
+  const canPlaceInline = () => cx > 0;
+  const placeInlineSpacing = () => {
+    if (canPlaceInline()) {
+      cx += spaceW;
+    }
+  };
 
   for (const seg of tokenize(dialogText)) {
     if (seg.kind === "emoji") {
       const tex = getEmojiTexture(seg.name) ?? getEmojiTexture(fallbackEmojiName);
-      if (!tex) continue;
+      if (!tex) {
+        continue;
+      }
 
-      if (cx > 0) cx += spaceW;
-      if (cx + emojiSize > maxWidth) wrap();
+      placeInlineSpacing();
+      if (cx + emojiSize > maxWidth) {
+        wrap();
+      }
 
       const s = new Sprite(tex);
       s.width = emojiSize;
@@ -54,8 +64,7 @@ export function renderInlineDialog(
         .fill(0xffffff);
       mask.position.copyFrom(s.position);
       s.mask = mask;
-      root.addChild(s);
-      root.addChild(mask);
+      root.addChild(s, mask);
       cx += emojiSize;
       continue;
     }
@@ -76,11 +85,16 @@ export function renderInlineDialog(
     for (const word of words) {
       const candidate = buf.length ? [...buf, word].join(" ") : word;
       const w = measure(probe, candidate);
-      const x0 = cx > 0 && !buf.length ? cx + spaceW : cx;
+      const x0 = canPlaceInline() && !buf.length ? cx + spaceW : cx;
 
       // Wrap only when current buffered chunk would overflow.
-      if (x0 + w > maxWidth && buf.length) { flush(); wrap(); }
-      if (cx > 0 && !buf.length) cx += spaceW;
+      if (x0 + w > maxWidth && buf.length) {
+        flush();
+        wrap();
+      }
+      if (canPlaceInline() && !buf.length) {
+        placeInlineSpacing();
+      }
 
       buf.push(word);
     }

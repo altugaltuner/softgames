@@ -116,13 +116,6 @@ export class MagicWordsDialogueFlow {
     }
   }
 
-  destroy(): void {
-    for (const slot of Object.values(this.slots)) {
-      gsap.killTweensOf(slot.container.scale);
-      gsap.killTweensOf(slot.dialogueContainer.scale);
-    }
-  }
-
   private animateDialogueIn(slot: AvatarSlot): void {
     const base = this.getDialogueBasePosition(slot.side);
     const bounds = slot.dialogueContainer.getLocalBounds();
@@ -156,4 +149,12 @@ export class MagicWordsDialogueFlow {
       y: MagicWordsSceneConfig.bubble.right.y,
     };
   }
+
+  destroy(): void {
+    for (const slot of Object.values(this.slots)) {
+      gsap.killTweensOf(slot.container.scale);
+      gsap.killTweensOf(slot.dialogueContainer.scale);
+    }
+  }
+
 }

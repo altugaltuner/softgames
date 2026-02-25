@@ -11,16 +11,6 @@ const games = gamesData as GameCard[];
 const GAME_ROUTES = new Set(games.map((game) => game.url));
 const sceneModuleLoaders = import.meta.glob<SceneModule>("../scenes/*/index.ts");
 
-function routeToScene(route: string): string {
-  const slug = route.replace(/^\/+/, "").replace(/\/+$/, "");
-  return `../scenes/${slug}/index.ts`;
-}
-
-function setDocumentGameMode(isGame: boolean): void {
-  document.documentElement.classList.toggle("is-game", isGame);
-  document.body.classList.toggle("is-game", isGame);
-}
-
 class SceneManager {
   private readonly root: HTMLElement;
   private cleanup: (() => void) | null = null;
@@ -31,7 +21,6 @@ class SceneManager {
   }
 
   start(): void {
-    this.validateGameScenes();
     window.addEventListener("popstate", this.onPopState);
     void this.renderRoute();
   }
@@ -59,13 +48,13 @@ class SceneManager {
     const path = window.location.pathname;
 
     if (!GAME_ROUTES.has(path)) {
-      setDocumentGameMode(false);
+      this.setDocumentGameMode(false);
       renderMenuScene(this.root, { onNavigate: this.navigate });
       return;
     }
 
     if (!this.root.firstElementChild) {
-      setDocumentGameMode(true);
+      this.setDocumentGameMode(true);
     }
     let app: Application | null = null;
     let scene: ManagedScene | null = null;
@@ -75,10 +64,6 @@ class SceneManager {
         backgroundColor: 0x0b0d12,
         mount: false,
       });
-
-      if (token !== this.renderToken) {
-        throw new Error("Route render superseded while creating app.");
-      }
 
       const resolved = await this.createSceneForPath(path, app);
       scene = resolved.scene;
@@ -99,7 +84,7 @@ class SceneManager {
         scene.resize,
       );
 
-      setDocumentGameMode(true);
+      this.setDocumentGameMode(true);
       this.root.replaceChildren(app.canvas);
 
       this.cleanup = () => {
@@ -116,8 +101,7 @@ class SceneManager {
       if (token !== this.renderToken) {
         return;
       }
-
-      setDocumentGameMode(false);
+      this.setDocumentGameMode(false);
       renderMenuScene(this.root, { onNavigate: this.navigate });
       throw error;
     }
@@ -127,7 +111,8 @@ class SceneManager {
     path: string,
     app: Application,
   ): Promise<{ scene: ManagedScene; design: SceneDesign }> {
-    const modulePath = routeToScene(path);
+    const slug = path.replace(/^\/+/, "").replace(/\/+$/, "");
+    const modulePath = `../scenes/${slug}/index.ts`;
     const loadSceneModule = sceneModuleLoaders[modulePath];
 
     if (!loadSceneModule) {
@@ -141,21 +126,9 @@ class SceneManager {
     };
   }
 
-  private validateGameScenes(): void {
-    const missingRoutes: string[] = [];
-
-    for (const game of games) {
-      const modulePath = routeToScene(game.url);
-      if (!sceneModuleLoaders[modulePath]) {
-        missingRoutes.push(game.url);
-      }
-    }
-
-    if (missingRoutes.length > 0) {
-      throw new Error(
-        `[SceneManager] games.json route(s) missing scene module: ${missingRoutes.join(", ")}`,
-      );
-    }
+  private setDocumentGameMode(isGame: boolean): void {
+    document.documentElement.classList.toggle("is-game", isGame);
+    document.body.classList.toggle("is-game", isGame);
   }
 }
 
