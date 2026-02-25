@@ -6,6 +6,7 @@ import gamesData from "../data/games.json";
 import { renderMenuScene } from "../scenes/menuScene";
 import { addBackButton } from "../shared/backButton";
 import { attachFpsHud } from "../shared/fpsHud";
+import { createLoadingModal } from "../shared/loadingModal";
 
 const games = gamesData as GameCard[];
 const GAME_ROUTES = new Set(games.map((game) => game.url));
@@ -13,6 +14,8 @@ const sceneModuleLoaders = import.meta.glob<SceneModule>("../scenes/*/index.ts")
 
 class SceneManager {
   private readonly root: HTMLElement;
+  private readonly loadingModal = createLoadingModal();
+  private readonly initializedRoutes = new Set<string>();
   private cleanup: (() => void) | null = null;
   private renderToken = 0;
 
@@ -51,6 +54,11 @@ class SceneManager {
       this.setDocumentGameMode(false);
       renderMenuScene(this.root, { onNavigate: this.navigate });
       return;
+    }
+
+    const shouldShowLoadingModal = !this.initializedRoutes.has(path);
+    if (shouldShowLoadingModal) {
+      this.loadingModal.show("Oyun yukleniyor...");
     }
 
     if (!this.root.firstElementChild) {
@@ -94,6 +102,7 @@ class SceneManager {
         scene?.destroy();
         app?.destroy(true);
       };
+      this.initializedRoutes.add(path);
     } catch (error) {
       scene?.destroy();
       app?.destroy(true);
@@ -104,6 +113,10 @@ class SceneManager {
       this.setDocumentGameMode(false);
       renderMenuScene(this.root, { onNavigate: this.navigate });
       throw error;
+    } finally {
+      if (shouldShowLoadingModal) {
+        this.loadingModal.hide();
+      }
     }
   }
 

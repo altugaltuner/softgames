@@ -1,4 +1,5 @@
 import { Application, Container, Text } from "pixi.js";
+import { FpsHudConfig } from "./config";
 
 class FpsHud {
 
@@ -10,17 +11,12 @@ class FpsHud {
   constructor(app: Application) {
     this.app = app;
     this.container = new Container();
-    this.container.zIndex = 1000;
+    this.container.zIndex = FpsHudConfig.containerZIndex;
     this.text = new Text({
-      text: "FPS: 0",
-      style: {
-        fill: 0xffffff,
-        fontSize: 18,
-        fontFamily: "Bungee, sans-serif",
-        fontWeight: "400",
-      },
+      text: FpsHudConfig.initialText,
+      style: FpsHudConfig.textStyle,
     });
-    this.text.position.set(12, 8);
+    this.text.position.set(FpsHudConfig.textPosition.x, FpsHudConfig.textPosition.y);
     this.container.addChild(this.text);
   }
 
@@ -36,11 +32,11 @@ class FpsHud {
 
   private update = (): void => {
     this.elapsed += this.app.ticker.deltaMS;
-    if (this.elapsed < 200) {
+    if (this.elapsed < FpsHudConfig.updateIntervalMs) {
       return;
     }
     this.elapsed = 0;
-    this.text.text = `FPS: ${Math.round(this.app.ticker.FPS)}`;
+    this.text.text = `${FpsHudConfig.textPrefix} ${Math.round(this.app.ticker.FPS)}`;
   };
 }
 

@@ -1,8 +1,5 @@
 import { Application, Container, Graphics, Text } from "pixi.js";
-
-type BackButtonOptions = {
-  onClick: () => void;
-};
+import { BackButtonConfig, type BackButtonOptions } from "./config";
 
 class BackButton {
 
@@ -16,25 +13,29 @@ class BackButton {
     this.app = app;
     this.options = options;
     this.container = new Container();
-    this.container.zIndex = 100;
+    this.container.zIndex = BackButtonConfig.containerZIndex;
 
     this.button = new Graphics();
-    this.button.roundRect(15, 34, 30, 30, 8);
-    this.button.fill({ color: 0x1f2a44, alpha: 1 });
-    this.button.stroke({ color: 0xffffff, alpha: 0.75, width: 1 });
+    this.button.roundRect(
+      BackButtonConfig.shape.x,
+      BackButtonConfig.shape.y,
+      BackButtonConfig.shape.width,
+      BackButtonConfig.shape.height,
+      BackButtonConfig.shape.radius,
+    );
+    this.button.fill(BackButtonConfig.fill);
+    this.button.stroke(BackButtonConfig.stroke);
     this.button.eventMode = "static";
     this.button.cursor = "pointer";
 
     this.label = new Text({
-      text: "<",
-      style: {
-        fill: 0xffffff,
-        fontSize: 18,
-        fontFamily: "Bungee, sans-serif",
-        fontWeight: "400",
-      },
+      text: BackButtonConfig.text,
+      style: BackButtonConfig.textStyle,
     });
-    this.label.position.set(22, 38);
+    this.label.position.set(
+      BackButtonConfig.textPosition.x,
+      BackButtonConfig.textPosition.y,
+    );
     this.label.eventMode = "none";
   }
 

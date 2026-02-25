@@ -33,7 +33,7 @@ export function preloadMagicWordsCache(): Promise<void> {
       emojiUrlByName.set(emoji.name, normalizeAssetUrl(emoji.url));
     }
 
-    // Warm all known textures upfront so dialogue rendering stays smooth.
+    // preload all known textures upfront so dialogue rendering stays smooth.
     await Promise.all(urls.map((url) => ensureTextureCached(url)));
   })();
 
