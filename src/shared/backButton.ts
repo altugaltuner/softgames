@@ -1,5 +1,6 @@
 import { Application, Container, Graphics, Text } from "pixi.js";
-import { BackButtonConfig, type BackButtonOptions } from "./config";
+import { BackButtonConfig } from "./config";
+import { type BackButtonOptions } from "./type";
 
 class BackButton {
 

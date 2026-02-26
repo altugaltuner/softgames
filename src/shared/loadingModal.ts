@@ -1,7 +1,8 @@
 import {
-  DEFAULT_MESSAGE,
   type loadingModalController,
-} from "./config";
+} from "./type";
+
+import { DEFAULT_MESSAGE } from "./config";
 
 export function createLoadingModal(): loadingModalController {
   const overlay = document.createElement("div");

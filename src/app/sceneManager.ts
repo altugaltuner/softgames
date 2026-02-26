@@ -6,6 +6,7 @@ import gamesData from "../data/games.json";
 import { renderMenuScene } from "../scenes/menuScene";
 import { addBackButton } from "../shared/backButton";
 import { attachFpsHud } from "../shared/fpsHud";
+import { addFullScreenButton } from "../shared/fullScreen";
 import { createLoadingModal } from "../shared/loadingModal";
 
 const games = gamesData as GameCard[];
@@ -86,6 +87,7 @@ class SceneManager {
           requestAnimationFrame(() => this.navigate("/"));
         },
       });
+      const detachFullScreenButton = addFullScreenButton(app);
       const detachResize = createResizeManager(
         resolved.design.width,
         resolved.design.height,
@@ -99,6 +101,7 @@ class SceneManager {
         detachResize();
         detachFps();
         detachBackButton();
+        detachFullScreenButton();
         scene?.destroy();
         app?.destroy(true);
       };
