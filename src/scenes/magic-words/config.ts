@@ -8,6 +8,7 @@ export const MagicWordsSceneConfig = {
   labels: {
     root: "MagicWordsScene",
     nextButton: "NextDialogueButton",
+    playPauseButton: "PlayPauseButton",
   },
   header: {
     text: "Magic Words",
@@ -23,7 +24,9 @@ export const MagicWordsSceneConfig = {
   interaction: {
     controlsGap: 12,
     buttonHoverOffset: -5,
+    buttonRestOffset: 0,
     buttonAnimDuration: 0.2,
+    buttonAnimEase: "power2.out",
     autoPlayIntervalMs: 3000,
     // Used when an audio complete callback does not fire.
     autoPlayAudioSafetyTimeoutMs: 15000,
@@ -47,6 +50,7 @@ export const MagicWordsSceneConfig = {
     strokeColor: 0xffffff,
     strokeWidth: 1,
     emojiSize: 16,
+    fallBackEmojiName: "satisfied",
     emojiCornerRadiusRatio: 1,
     strokeAlpha: 0.35,
     bottomOffset: 48,
@@ -56,6 +60,10 @@ export const MagicWordsSceneConfig = {
       fontFamily: "Bungee, sans-serif",
       fontWeight: "400",
     } as const,
+    icon: {
+      size: 22,
+      tint: 0xffffff,
+    },
   },
   avatar: {
     minSize: 64,

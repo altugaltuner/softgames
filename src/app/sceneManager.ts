@@ -75,7 +75,9 @@ class SceneManager {
       });
 
       const resolved = await this.createSceneForPath(path, app);
+      console.log(resolved);
       scene = resolved.scene;
+      console.log(scene);
 
       if (token !== this.renderToken) {
         throw new Error("Route render superseded while creating scene.");

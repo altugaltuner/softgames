@@ -19,93 +19,93 @@ export function renderInlineDialog(
     maxWidth = Number.POSITIVE_INFINITY,
     emojiSize = MagicWordsSceneConfig.button.emojiSize,
     lineHeight,
-    fallbackEmojiName = "satisfied",
+    fallbackEmojiName = MagicWordsSceneConfig.button.fallBackEmojiName,
   } = options;
 
   const root = new Container();
   const style = toNoWrapStyle(textStyle);
   // Probe text is reused for width/spacing metrics to keep wrapping deterministic.
-  const probe = new Text({ text: "Xg|", style, resolution });
-  const rowH = lineHeight ?? Math.max(probe.height, emojiSize);
-  const spaceW = measure(probe, "x x") - measure(probe, "xx");
+  const measurementText = new Text({ text: "Xg|", style, resolution });
+  const rowHeight = lineHeight ?? Math.max(measurementText.height, emojiSize);
+  const inlineSpaceWidth = measure(measurementText, "x x") - measure(measurementText, "xx");
 
-  let cx = 0;
-  let cy = 0;
+  let cursorX = 0;
+  let cursorY = 0;
 
-  const wrap = () => { cx = 0; cy += rowH; };
-  const centerY = (h: number) => cy + Math.max(0, (rowH - h) * 0.5);
-  const canPlaceInline = () => cx > 0;
+  const wrap = () => { cursorX = 0; cursorY += rowHeight; };
+  const centerY = (height: number) => cursorY + Math.max(0, (rowHeight - height) * 0.5);
+  const canPlaceInline = () => cursorX > 0;
   const placeInlineSpacing = () => {
     if (canPlaceInline()) {
-      cx += spaceW;
+      cursorX += inlineSpaceWidth;
     }
   };
 
-  for (const seg of tokenize(dialogText)) {
-    if (seg.kind === "emoji") {
-      const tex = getEmojiTexture(seg.name) ?? getEmojiTexture(fallbackEmojiName);
-      if (!tex) {
+  for (const segment of tokenize(dialogText)) {
+    if (segment.kind === "emoji") {
+      const emojiTexture = getEmojiTexture(segment.name) ?? getEmojiTexture(fallbackEmojiName);
+      if (!emojiTexture) {
         continue;
       }
 
       placeInlineSpacing();
-      if (cx + emojiSize > maxWidth) {
+      if (cursorX + emojiSize > maxWidth) {
         wrap();
       }
 
-      const s = new Sprite(tex);
-      s.width = emojiSize;
-      s.height = emojiSize;
-      s.position.set(cx, centerY(emojiSize));
-      s.roundPixels = true;
+      const emojiSprite = new Sprite(emojiTexture);
+      emojiSprite.width = emojiSize;
+      emojiSprite.height = emojiSize;
+      emojiSprite.position.set(cursorX, centerY(emojiSize));
+      emojiSprite.roundPixels = true;
       // Mask keeps emoji corners visually consistent with the dialogue style.
       const mask = new Graphics()
         .roundRect(0, 0, emojiSize, emojiSize, emojiSize * MagicWordsSceneConfig.button.emojiCornerRadiusRatio)
         .fill(0xffffff);
-      mask.position.copyFrom(s.position);
-      s.mask = mask;
-      root.addChild(s, mask);
-      cx += emojiSize;
+      mask.position.copyFrom(emojiSprite.position);
+      emojiSprite.mask = mask;
+      root.addChild(emojiSprite, mask);
+      cursorX += emojiSize;
       continue;
     }
 
-    const words = seg.value.split(/\s+/).filter(Boolean);
-    let buf: string[] = [];
+    const textWords = segment.value.split(/\s+/).filter(Boolean);
+    let bufferedWords: string[] = [];
 
-    const flush = () => {
-      if (!buf.length) return;
-      const node = new Text({ text: buf.join(" "), style, resolution });
-      node.position.set(cx, centerY(node.height));
+    const renderBufferedWords = () => {
+      if (!bufferedWords.length) return;
+      const node = new Text({ text: bufferedWords.join(" "), style, resolution });
+      node.position.set(cursorX, centerY(node.height));
       node.roundPixels = true;
       root.addChild(node);
-      cx += node.width;
-      buf = [];
+      cursorX += node.width;
+      bufferedWords = [];
     };
 
-    for (const word of words) {
-      const candidate = buf.length ? [...buf, word].join(" ") : word;
-      const w = measure(probe, candidate);
-      const x0 = canPlaceInline() && !buf.length ? cx + spaceW : cx;
+    for (const word of textWords) {
+      const candidateText = bufferedWords.length ? [...bufferedWords, word].join(" ") : word;
+      const candidateWidth = measure(measurementText, candidateText);
+      const candidateStartX = canPlaceInline() && !bufferedWords.length ? cursorX + inlineSpaceWidth : cursorX;
 
       // Wrap only when current buffered chunk would overflow.
-      if (x0 + w > maxWidth && buf.length) {
-        flush();
+      if (candidateStartX + candidateWidth > maxWidth && bufferedWords.length) {
+        renderBufferedWords();
         wrap();
       }
-      if (canPlaceInline() && !buf.length) {
+      if (canPlaceInline() && !bufferedWords.length) {
         placeInlineSpacing();
       }
 
-      buf.push(word);
+      bufferedWords.push(word);
     }
 
-    flush();
+    renderBufferedWords();
   }
 
-  const b = root.getLocalBounds();
+  const bounds = root.getLocalBounds();
   // Center pivot simplifies placing this container inside bubble content slots.
-  root.pivot.set(b.x + b.width * 0.5, b.y + b.height * 0.5);
-  probe.destroy();
+  root.pivot.set(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5);
+  measurementText.destroy();
   return root;
 }
 

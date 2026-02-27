@@ -14,3 +14,8 @@ export const AceOfShadowsConfig = {
   arcLiftY: 250,
   easing: "power2.inOut",
 } as const;
+
+export const AceOfShadowsDesign = {
+  woodenBackgroundPath: "/assets/ui/wooden-bg.webp",
+  cardContainerPath: "/assets/ui/card-container.png",
+} as const;

@@ -73,14 +73,14 @@ export class MagicWordsControls {
 
   private setupPlayPauseButton(): void {
     const size = MagicWordsSceneConfig.button.height;
-    this.options.playPauseButton.label = "PlayPauseButton";
+    this.options.playPauseButton.label = MagicWordsSceneConfig.labels.playPauseButton;
     this.options.playPauseButton.eventMode = "static";
     this.options.playPauseButton.cursor = "pointer";
     this.options.playPauseButton.pivot.set(size * 0.5, size * 0.5);
 
     this.options.playPauseButtonBg
       .roundRect(0, 0, size, size, MagicWordsSceneConfig.button.radius)
-      .fill({ color: 0xffffff })
+      .fill({ color: MagicWordsSceneConfig.interaction.playPauseButton.normalFillColor })
       .stroke({
         color: MagicWordsSceneConfig.button.strokeColor,
         width: MagicWordsSceneConfig.button.strokeWidth,
@@ -89,15 +89,15 @@ export class MagicWordsControls {
 
     this.options.playIcon.anchor.set(0.5);
     this.options.playIcon.position.set(size * 0.5, size * 0.5);
-    this.options.playIcon.width = 22;
-    this.options.playIcon.height = 22;
-    this.options.playIcon.tint = 0xffffff;
+    this.options.playIcon.width = MagicWordsSceneConfig.button.icon.size;
+    this.options.playIcon.height = MagicWordsSceneConfig.button.icon.size;
+    this.options.playIcon.tint = MagicWordsSceneConfig.button.icon.tint;
 
     this.options.pauseIcon.anchor.set(0.5);
     this.options.pauseIcon.position.set(size * 0.5, size * 0.5);
-    this.options.pauseIcon.width = 22;
-    this.options.pauseIcon.height = 22;
-    this.options.pauseIcon.tint = 0xffffff;
+    this.options.pauseIcon.width = MagicWordsSceneConfig.button.icon.size;
+    this.options.pauseIcon.height = MagicWordsSceneConfig.button.icon.size;
+    this.options.pauseIcon.tint = MagicWordsSceneConfig.button.icon.tint;
     this.options.pauseIcon.visible = false;
 
     this.options.playPauseButton.addChild(
@@ -133,7 +133,7 @@ export class MagicWordsControls {
       gsap.to(button.position, {
         y: MagicWordsSceneConfig.interaction.buttonHoverOffset,
         duration: MagicWordsSceneConfig.interaction.buttonAnimDuration,
-        ease: "power2.out",
+        ease: MagicWordsSceneConfig.interaction.buttonAnimEase,
         overwrite: true,
       });
     });
@@ -141,9 +141,9 @@ export class MagicWordsControls {
     button.on("pointerout", () => {
       this.drawButtonBackground(background, width, height, normalColor);
       gsap.to(button.position, {
-        y: 0,
+        y: MagicWordsSceneConfig.interaction.buttonRestOffset,
         duration: MagicWordsSceneConfig.interaction.buttonAnimDuration,
-        ease: "power2.out",
+        ease: MagicWordsSceneConfig.interaction.buttonAnimEase,
         overwrite: true,
       });
     });
@@ -159,9 +159,9 @@ export class MagicWordsControls {
     button.on("pointerupoutside", () => {
       this.drawButtonBackground(background, width, height, normalColor);
       gsap.to(button.position, {
-        y: 0,
+        y: MagicWordsSceneConfig.interaction.buttonRestOffset,
         duration: MagicWordsSceneConfig.interaction.buttonAnimDuration,
-        ease: "power2.out",
+        ease: MagicWordsSceneConfig.interaction.buttonAnimEase,
         overwrite: true,
       });
     });

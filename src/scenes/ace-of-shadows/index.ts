@@ -4,10 +4,9 @@ import { AceOfShadowsConfig } from "./config";
 import { createLauncher } from "./tween-system/tween";
 import type { AceOfShadowsScene } from "./types";
 import type { ResizePayload } from "../../app/type";
+import { AceOfShadowsDesign } from "./config";
 
 const cards = cardsData as string[];
-const woodenBackgroundPath = "/assets/ui/wooden-bg.webp";
-const cardContainerPath = "/assets/ui/card-container.png";
 
 class AceOfShadowsSceneImpl implements AceOfShadowsScene {
   readonly container = new Container();
@@ -36,11 +35,11 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
 
   async init(): Promise<AceOfShadowsScene> {
     // Load static scene textures before creating card sprites.
-    this.backgroundTexture = await Assets.load<Texture>(woodenBackgroundPath);
+    this.backgroundTexture = await Assets.load<Texture>(AceOfShadowsDesign.woodenBackgroundPath);
     this.backgroundSprite = new Sprite(this.backgroundTexture);
     this.backgroundSprite.label = "woodenBackground";
     this.backgroundContainer.addChildAt(this.backgroundSprite, 0);
-    this.cardFrameTexture = await Assets.load<Texture>(cardContainerPath);
+    this.cardFrameTexture = await Assets.load<Texture>(AceOfShadowsDesign.cardContainerPath);
     this.cardFrameSprite = new Sprite(this.cardFrameTexture);
     this.cardFrameSprite.anchor.set(0.5);
     this.cardFrameSprite.label = "cardFrame";
@@ -49,6 +48,7 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
 
     const sprites = await this.createCardSprites(cards);
     this.addCardsToContainer(sprites);
+    console.log(sprites, "sprites");
     this.app.stage.addChild(this.container);
 
     // Launcher owns the sequential card flight choreography.
@@ -86,6 +86,7 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
     const deckH = this.cardFrameTexture?.height ?? AceOfShadowsConfig.designHeight;
     // Fit deck art into viewport while preserving aspect ratio.
     const fit = Math.min(width / deckW, height / deckH);
+    console.log(fit, "fit", width, height, deckW, deckH);
     this.deckContainer.scale.set(fit);
     // Launcher works in deck-space coordinates (not raw viewport size).
     this.cardLauncher?.update(deckW, deckH);
@@ -103,6 +104,7 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
       const sprite = new Sprite(texture);
       sprite.anchor.set(0.5);
       sprite.label = `card-${index}`;
+      console.log(sprite, "sprite", texture);
       return sprite;
     });
   }
@@ -121,11 +123,6 @@ export async function createAceOfShadowsScene(
   const scene = new AceOfShadowsSceneImpl(app);
   return scene.init();
 }
-
-export const AceOfShadowsDesign = {
-  width: AceOfShadowsConfig.designWidth,
-  height: AceOfShadowsConfig.designHeight,
-};
 
 export const createScene = createAceOfShadowsScene;
 export const sceneDesign = AceOfShadowsDesign;
