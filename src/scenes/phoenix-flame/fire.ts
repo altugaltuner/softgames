@@ -1,21 +1,6 @@
 import { Container, Sprite, Texture } from "pixi.js";
 import { FlameConfig } from "./config";
-
-type FireParticle = {
-  sprite: Sprite;
-  lifeMs: number;
-  maxLifeMs: number;
-  vx: number;
-  vy: number;
-  startScale: number;
-  endScale: number;
-};
-
-export type FireParticleSystem = {
-  layer: Container;
-  update: (deltaMs: number) => void;
-  resize: (width: number, height: number) => void;
-};
+import type { FireParticle, FireParticleSystem } from "./type";
 
 export function createFireCircle(
   radius = FlameConfig.fireTemplate.radius,
@@ -62,10 +47,12 @@ export function createFireParticleSystem(
   particleTexture: Texture,
   maxParticles = FlameConfig.maxParticles,
 ): FireParticleSystem {
+
   const layer = new Container();
   const particles: FireParticle[] = [];
   let centerX = 0;
   let centerY = 0;
+  let isCenterInitialized = false;
 
   for (let i = 0; i < maxParticles; i += 1) {
     const sprite = new Sprite(particleTexture);
@@ -75,8 +62,8 @@ export function createFireParticleSystem(
       sprite,
       lifeMs: 0,
       maxLifeMs: 0,
-      vx: 0,
-      vy: 0,
+      velocityX: 0,
+      velocityY: 0,
       startScale: FlameConfig.particle.defaultScale,
       endScale: FlameConfig.particle.defaultScale,
     };
@@ -96,15 +83,15 @@ export function createFireParticleSystem(
         }
 
         const progress = particle.lifeMs / particle.maxLifeMs;
-        particle.sprite.x += particle.vx * deltaMs;
-        particle.sprite.y += particle.vy * deltaMs;
+        particle.sprite.x += particle.velocityX * deltaMs;
+        particle.sprite.y += particle.velocityY * deltaMs;
         particle.sprite.alpha = initialPeakFade(progress);
         particle.sprite.scale.set(
           particle.startScale + (particle.endScale - particle.startScale) * progress,
         );
       }
     },
-    resize: (width: number, height: number): void => {
+    setCenter: (width: number, height: number): void => {
       centerX = width * FlameConfig.emitter.xRatio;
       centerY =
         height * FlameConfig.emitter.yRatio +
@@ -113,6 +100,13 @@ export function createFireParticleSystem(
           height * FlameConfig.emitter.yOffsetHeightRatio,
         ) +
         FlameConfig.placement.yOffset;
+
+      if (!isCenterInitialized) {
+        for (const particle of particles) {
+          resetParticle(particle, centerX, centerY, true);
+        }
+        isCenterInitialized = true;
+      }
     },
   };
 }
@@ -130,11 +124,11 @@ function resetParticle(
   particle.lifeMs = initialSpawn
     ? randomRange(0, particle.maxLifeMs * FlameConfig.particle.initialLifePortion)
     : 0;
-  particle.vx = randomRange(
+  particle.velocityX = randomRange(
     FlameConfig.particle.velocityX.min,
     FlameConfig.particle.velocityX.max,
   );
-  particle.vy = randomRange(
+  particle.velocityY = randomRange(
     FlameConfig.particle.velocityY.min,
     FlameConfig.particle.velocityY.max,
   );

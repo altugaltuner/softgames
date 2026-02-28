@@ -11,7 +11,6 @@ const DEFAULT_COVER_IMAGE = "/assets/ui/card-cover.webp";
 const coverImageElementCache = new Map<string, HTMLImageElement>();
 const coverImagePreloadPromises = new Map<string, Promise<void>>();
 
-// Preload common card covers at module load to reduce first-menu flicker.
 preloadCoverImages();
 
 export function renderMenuScene(
@@ -20,19 +19,24 @@ export function renderMenuScene(
 ): void {
   preloadCoverImages();
   const navigateTo = options.onNavigate ?? ((url: string) => window.location.assign(url));
+
   const container = document.createElement("div");
   container.className = "menu-scene";
+
   const title = document.createElement("h1");
   title.className = "menu-title";
   title.textContent = "Softgame Mechanics";
+
   const grid = document.createElement("div");
   grid.className = "menu-grid";
   for (const game of games) {
     grid.appendChild(renderGameCard(game));
   }
+
   const footer = document.createElement("p");
   footer.className = "menu-footer";
   footer.textContent = "made by altug altuner";
+
   container.append(title, grid, footer);
 
   grid.addEventListener("click", (event) => {

@@ -36,7 +36,7 @@ export async function createPhoenixFlameScene(app: Application): Promise<Managed
   const particleTexture = template.texture;
   template.destroy();
   const fireSystem = createFireParticleSystem(particleTexture);
-  fireSystem.resize(viewportWidth, viewportHeight);
+  fireSystem.setCenter(viewportWidth, viewportHeight);
 
   const update = () => {
     fireSystem.update(app.ticker.deltaMS);
@@ -81,7 +81,7 @@ export async function createPhoenixFlameScene(app: Application): Promise<Managed
       viewportHeight = height;
       layoutBackgroundSprite(background, width, height);
       layoutTorchSprite(torch, width, height);
-      fireSystem.resize(width, height);
+      fireSystem.setCenter(width, height);
 
     },
     destroy: () => {
