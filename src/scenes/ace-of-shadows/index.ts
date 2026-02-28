@@ -48,7 +48,6 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
 
     const sprites = await this.createCardSprites(cards);
     this.addCardsToContainer(sprites);
-    console.log(sprites, "sprites");
     this.app.stage.addChild(this.container);
 
     // Launcher owns the sequential card flight choreography.
@@ -86,7 +85,6 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
     const deckH = this.cardFrameTexture?.height ?? AceOfShadowsConfig.designHeight;
     // Fit deck art into viewport while preserving aspect ratio.
     const fit = Math.min(width / deckW, height / deckH);
-    console.log(fit, "fit", width, height, deckW, deckH);
     this.deckContainer.scale.set(fit);
     // Launcher works in deck-space coordinates (not raw viewport size).
     this.cardLauncher?.update(deckW, deckH);
@@ -104,7 +102,6 @@ class AceOfShadowsSceneImpl implements AceOfShadowsScene {
       const sprite = new Sprite(texture);
       sprite.anchor.set(0.5);
       sprite.label = `card-${index}`;
-      console.log(sprite, "sprite", texture);
       return sprite;
     });
   }

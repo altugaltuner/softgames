@@ -86,7 +86,6 @@ export function renderInlineDialog(
       const candidateText = bufferedWords.length ? [...bufferedWords, word].join(" ") : word;
       const candidateWidth = measure(measurementText, candidateText);
       const candidateStartX = canPlaceInline() && !bufferedWords.length ? cursorX + inlineSpaceWidth : cursorX;
-
       // Wrap only when current buffered chunk would overflow.
       if (candidateStartX + candidateWidth > maxWidth && bufferedWords.length) {
         renderBufferedWords();
