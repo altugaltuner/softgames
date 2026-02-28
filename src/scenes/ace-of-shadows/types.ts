@@ -6,4 +6,3 @@ export type AceOfShadowsScene = {
   resize: (payload: ResizePayload) => void;
   destroy: () => void;
 };
-

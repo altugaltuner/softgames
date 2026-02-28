@@ -59,7 +59,7 @@ class SceneManager {
 
     const shouldShowLoadingModal = !this.initializedRoutes.has(path);
     if (shouldShowLoadingModal) {
-      this.loadingModal.show("Oyun yukleniyor...");
+      this.loadingModal.show("Game loading...");
     }
 
     if (!this.root.firstElementChild) {
